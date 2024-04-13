@@ -1,8 +1,21 @@
 package com.example.myapplication;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
-
+import android.os.Build;
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -15,6 +28,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -38,6 +52,12 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,50 +65,116 @@ public class MainApplication extends AppCompatActivity {
 
     private static final String TAG = "ChatActivity";
     private static final int REQUEST_CODE_PERMISSIONS = 1;
-    private static final String[] REQUIRED_PERMISSIONS = {
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE,
-            Manifest.permission.NEARBY_WIFI_DEVICES,
-            Manifest.permission.ACCESS_FINE_LOCATION,
+    private static  String[] REQUIRED_PERMISSIONS ;
 
-    };
+
+//            = {
+//            Manifest.permission.ACCESS_COARSE_LOCATION,
+//            Manifest.permission.BLUETOOTH_SCAN,
+//            Manifest.permission.BLUETOOTH_ADVERTISE,
+//            Manifest.permission.BLUETOOTH_CONNECT,
+//            Manifest.permission.ACCESS_WIFI_STATE,
+//            Manifest.permission.CHANGE_WIFI_STATE,
+//            Manifest.permission.NEARBY_WIFI_DEVICES,
+//            Manifest.permission.ACCESS_FINE_LOCATION,
+//
+//    };
+
+
+
 
     private EditText messageEditText;
     private Button sendButton;
+    private Button imageButton;
     private TextView chatTextView;
+    private ImageView imageView;
 
     private ConnectionsClient connectionsClient;
     private String localEndpointName;
     private List<String> discoveredEndpoints;
 
     private ListView chatListView;
-    private ArrayAdapter<String> chatAdapter;
+    private ChatsAdapter chatAdapter ;
+    private ActivityResultLauncher<PickVisualMediaRequest> attachmentLauncher;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        chatAdapter = new ChatsAdapter(this, new ArrayList<ChatMessage>());
 
         messageEditText = findViewById(R.id.messageEditText);
         sendButton = findViewById(R.id.sendButton);
+        imageButton = findViewById(R.id.attachButton);
         chatListView = findViewById(R.id.chatListView);
-        chatAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        imageView=findViewById(R.id.imageView);
+        List<ChatMessage> chatMessages = new ArrayList<>();
+
+
         chatListView.setAdapter(chatAdapter);        //chatRecyclerView = findViewById(R.id.chatRecyclerView);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String message = messageEditText.getText().toString();
-                if (!message.isEmpty()) {
-                    sendMessage(message);
+                Drawable imageDrawable = imageView.getDrawable();
+
+
+                if (!message.isEmpty() || imageDrawable != null) {
+                    try {
+                        sendMessage(message,imageDrawable);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
                     messageEditText.setText("");
+                    imageView.setImageDrawable(null);
+
+
                 }
             }
         });
+
+
+
+        imageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent iGallery= new Intent(Intent.ACTION_PICK);
+
+                openAttachmentPicker();
+            }
+        });
+
+        attachmentLauncher =
+                registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+                    // Callback is invoked after the user selects a media item or closes the
+                    // photo picker.
+                    if (uri != null) {
+                        Context context = this; // Replace 'this' with your actual context
+                        ContentResolver  contentResolver = context.getContentResolver();
+//                        Drawable imageDrawable = getDrawableFromUri(uri);
+//                        imageDrawable = imageView.getDrawable();
+                        ImageDecoder.Source source = null;
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            source = ImageDecoder.createSource(contentResolver, uri);
+                        }
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            try {
+                                Bitmap imageBitmap = ImageDecoder.decodeBitmap(source);
+                                imageView.setImageBitmap(imageBitmap);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        Log.d("PhotoPicker", "Selected URI: " + uri);
+                    } else {
+                        Log.d("PhotoPicker", "No media selected");
+                    }
+                });
+
+
+
 
         connectionsClient = Nearby.getConnectionsClient(this);
         discoveredEndpoints = new ArrayList<>();
@@ -101,6 +187,23 @@ public class MainApplication extends AppCompatActivity {
         }
     }
 
+    private Drawable getDrawableFromUri(Uri uri) {
+        try {
+            ContentResolver resolver = getContentResolver();
+            InputStream inputStream = resolver.openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            return new BitmapDrawable(getResources(), bitmap);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
+
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -109,6 +212,54 @@ public class MainApplication extends AppCompatActivity {
     }
 
     private boolean arePermissionsGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            REQUIRED_PERMISSIONS =
+                    new String[] {
+                            Manifest.permission.BLUETOOTH_SCAN,
+                            Manifest.permission.BLUETOOTH_ADVERTISE,
+                            Manifest.permission.BLUETOOTH_CONNECT,
+                            Manifest.permission.ACCESS_WIFI_STATE,
+                            Manifest.permission.CHANGE_WIFI_STATE,
+                            Manifest.permission.NEARBY_WIFI_DEVICES,
+                    };
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            REQUIRED_PERMISSIONS =
+                    new String[] {
+                            Manifest.permission.BLUETOOTH_SCAN,
+                            Manifest.permission.BLUETOOTH_ADVERTISE,
+                            Manifest.permission.BLUETOOTH_CONNECT,
+                            Manifest.permission.ACCESS_WIFI_STATE,
+                            Manifest.permission.CHANGE_WIFI_STATE,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                    };
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            REQUIRED_PERMISSIONS =
+                    new String[] {
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.BLUETOOTH_ADMIN,
+                            Manifest.permission.ACCESS_WIFI_STATE,
+                            Manifest.permission.CHANGE_WIFI_STATE,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                    };
+        } else {
+            REQUIRED_PERMISSIONS =
+                    new String[] {
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.BLUETOOTH_ADMIN,
+                            Manifest.permission.ACCESS_WIFI_STATE,
+                            Manifest.permission.CHANGE_WIFI_STATE,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                    };
+        }
+
+
+
+
+
+
+
         for (String permission : REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, permission)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -117,6 +268,12 @@ public class MainApplication extends AppCompatActivity {
         }
         return true;
     }
+
+
+
+
+
+
 
     private void requestPermissions() {
         ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
@@ -188,15 +345,55 @@ public class MainApplication extends AppCompatActivity {
         Log.d(TAG, "Discovery stopped");
     }
 
-    private void sendMessage(String message) {
+    private void sendMessage(String message,  Drawable imageDrawable) throws FileNotFoundException {
         byte[] payload = message.getBytes(StandardCharsets.UTF_8);
-        connectionsClient.sendPayload(discoveredEndpoints, Payload.fromBytes(payload));
-        appendToChat("Me: " + message);
+        Payload messagePayload = Payload.fromBytes(payload);
+        connectionsClient.sendPayload(discoveredEndpoints, messagePayload);
+
+        if (imageDrawable != null) {
+            File imageFile = createImageFile(imageDrawable);
+            if (imageFile != null) {
+                Payload imagePayload = Payload.fromFile(imageFile);
+                connectionsClient.sendPayload(discoveredEndpoints, imagePayload);
+            }
+        }
+
+        appendToChat("Me: " + message, imageDrawable);
+    }
+    private File createImageFile(Drawable imageDrawable) {
+        try {
+            Bitmap imageBitmap = ((BitmapDrawable) imageDrawable).getBitmap();
+            File cacheDir = getCacheDir();
+            File imageFile = new File(cacheDir, "image.png");
+            FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
+            imageBitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream);
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            return imageFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    private void appendToChat(String message) {
-        chatAdapter.add(message);
+
+
+    private void appendToChat(String message,Drawable image) {
+        ChatMessage chat=new ChatMessage(message,image);
+
+        chatAdapter.add(chat);
         chatListView.setSelection(chatAdapter.getCount() - 1);
+    }
+
+
+    private void openAttachmentPicker() {
+        // Add your code here to open the attachment picker
+        // For example, you can use an Intent to open a file picker or camera
+        // and handle the selected/captured attachment accordingly.
+        // Example code for opening a file picker:
+        attachmentLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
     }
 
     private final ConnectionLifecycleCallback connectionLifecycleCallback =
@@ -247,12 +444,28 @@ public class MainApplication extends AppCompatActivity {
                 }
             };
 
+    private Drawable loadImageFromFile(File file) {
+        try {
+            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            return new BitmapDrawable(getResources(), bitmap);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private final PayloadCallback payloadCallback =
             new PayloadCallback() {
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
-                    String message = new String(payload.asBytes(), StandardCharsets.UTF_8);
-                    appendToChat(endpointId + ": " + message);
+                    if (payload.getType() == Payload.Type.BYTES) {
+                        String message = new String(payload.asBytes(), StandardCharsets.UTF_8);
+                        appendToChat(endpointId + ": " + message,null);
+                    } else if (payload.getType() == Payload.Type.FILE) {
+                        File receivedFile = payload.asFile().asJavaFile();
+                        Drawable imageDrawable = loadImageFromFile(receivedFile);
+                        appendToChat(null,imageDrawable);
+                    }
                 }
 
                 @Override
