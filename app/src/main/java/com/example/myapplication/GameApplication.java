@@ -45,7 +45,7 @@ public class GameApplication extends Fragment implements View.OnClickListener {
     private String localEndpointName;
     private List<String> discoveredEndpoints;
 
-    private static final int BOARD_SIZE = 15; // Size of the game board
+    private static final int BOARD_SIZE = 5; // Size of the game board
     private static final int PLAYER_X = 0;
     private static final int PLAYER_O = 1;
     private static final String TAG_ROW = "tag_row";
@@ -256,16 +256,20 @@ public class GameApplication extends Fragment implements View.OnClickListener {
 
 
     private void initializeBoard(LinearLayout boardLayout) {
+        boardLayout.setVisibility(View.VISIBLE);
         board = new ImageView[BOARD_SIZE][BOARD_SIZE];
-
+        Log.d("BROAD INITIATE","REACH");
         for (int i = 0; i < BOARD_SIZE; i++) {
             LinearLayout row = new LinearLayout(requireContext());
             row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
             for (int j = 0; j < BOARD_SIZE; j++) {
                 board[i][j] = new ImageView(requireContext());
-                board[i][j].setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-                board[i][j].setImageResource(R.drawable.empty); // Set empty image initially
+                int cellWidth = ViewGroup.LayoutParams.MATCH_PARENT / BOARD_SIZE;
+
+                board[i][j].setLayoutParams(new LinearLayout.LayoutParams(100,100));
+//                board[i][j].setImageResource(R.drawable.empty); // Set empty image initially
+                board[i][j].setBackgroundResource(R.drawable.cell_background);
                 board[i][j].setOnClickListener(this);
                 board[i][j].setTag(R.id.tag_row, i);
                 board[i][j].setTag(R.id.tag_col, j);
@@ -312,7 +316,9 @@ public class GameApplication extends Fragment implements View.OnClickListener {
 
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                board[i][j].setImageResource(R.drawable.empty);
+                board[i][j].setImageDrawable(null);
+                board[i][j].setBackgroundResource(R.drawable.cell_background);
+
             }
         }
     }
