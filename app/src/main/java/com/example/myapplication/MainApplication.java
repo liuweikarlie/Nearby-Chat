@@ -28,24 +28,25 @@ public class MainApplication extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         // Initialize UI elements
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
 //        if (!arePermissionsGranted()) {
 //            requestPermissions();
 //        }
-
-        // Set text for the TextView
-
-        Fragment initialFragment = new ChatApplication(); // Change to your desired fragment
-
-        // Perform the fragment transaction
-        replacement(initialFragment);
+        replacement(new ChatApplication());
 
 
-        bottomNavigationView.setOnNavigationItemSelectedListener(
-                new BottomNavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(MenuItem item) {
+
+
+
+
+
+
+        bottomNavigationView.setOnItemSelectedListener( item -> {
+//                new BottomNavigationView.OnNavigationItemSelectedListener() {
+//                    @Override
+//                    public boolean onNavigationItemSelected(MenuItem item) {
                         // Handle item clicks here
                         switch (item.getItemId()) {
                             case R.id.navChat:
@@ -61,7 +62,7 @@ public class MainApplication extends AppCompatActivity {
                         }
                         return true;
                     }
-                }
+
         );
     }
 
@@ -86,6 +87,7 @@ public class MainApplication extends AppCompatActivity {
                             android.Manifest.permission.ACCESS_WIFI_STATE,
                             android.Manifest.permission.CHANGE_WIFI_STATE,
                             android.Manifest.permission.NEARBY_WIFI_DEVICES,
+                            android.Manifest.permission.NFC
                     };
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             REQUIRED_PERMISSIONS =
@@ -97,6 +99,7 @@ public class MainApplication extends AppCompatActivity {
                             android.Manifest.permission.CHANGE_WIFI_STATE,
                             android.Manifest.permission.ACCESS_COARSE_LOCATION,
                             android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.NFC
                     };
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             REQUIRED_PERMISSIONS =
@@ -107,6 +110,7 @@ public class MainApplication extends AppCompatActivity {
                             android.Manifest.permission.CHANGE_WIFI_STATE,
                             android.Manifest.permission.ACCESS_COARSE_LOCATION,
                             android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.NFC
                     };
         } else {
             REQUIRED_PERMISSIONS =
@@ -116,6 +120,7 @@ public class MainApplication extends AppCompatActivity {
                             android.Manifest.permission.ACCESS_WIFI_STATE,
                             android.Manifest.permission.CHANGE_WIFI_STATE,
                             Manifest.permission.ACCESS_COARSE_LOCATION,
+                            android.Manifest.permission.NFC
                     };
         }
 

@@ -101,89 +101,89 @@ public class ChatApplication extends Fragment {
 //        setContentView(R.layout.activity_main);
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
-//        chatAdapter = new ChatsAdapter(getContext(), new ArrayList<ChatMessage>());
-//
-//        messageEditText = view.findViewById(R.id.messageEditText);
-//        sendButton = view.findViewById(R.id.sendButton);
-//        imageButton = view.findViewById(R.id.attachButton);
-//        chatListView = view.findViewById(R.id.chatListView);
-//        imageView=view.findViewById(R.id.imageView);
-//        List<ChatMessage> chatMessages = new ArrayList<>();
-//
-//
-//        chatListView.setAdapter(chatAdapter);        //chatRecyclerView = findViewById(R.id.chatRecyclerView);
-//
-//        sendButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                String message = messageEditText.getText().toString();
-//                Drawable imageDrawable = imageView.getDrawable();
-//
-//
-//                if (!message.isEmpty() || imageDrawable != null) {
-//                    try {
-//                        sendMessage(message,imageDrawable);
-//                    } catch (FileNotFoundException e) {
-//                        throw new RuntimeException(e);
-//                    }
-//                    messageEditText.setText("");
-//                    imageView.setImageDrawable(null);
-//
-//
-//                }
-//            }
-//        });
-//
-//
-//
-//        imageButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent iGallery= new Intent(Intent.ACTION_PICK);
-//
-//                openAttachmentPicker();
-//            }
-//        });
-//
-//        attachmentLauncher =
-//                registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-//                    // Callback is invoked after the user selects a media item or closes the
-//                    // photo picker.
-//                    if (uri != null) {
-////                        Context context = this; // Replace 'this' with your actual context
-//                        ContentResolver  contentResolver = requireContext().getContentResolver();
-////                        Drawable imageDrawable = getDrawableFromUri(uri);
-////                        imageDrawable = imageView.getDrawable();
-//                        ImageDecoder.Source source = null;
-//                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-//                            source = ImageDecoder.createSource(contentResolver, uri);
-//                        }
-//                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-//                            try {
-//                                Bitmap imageBitmap = ImageDecoder.decodeBitmap(source);
-//                                imageView.setImageBitmap(imageBitmap);
-//                            } catch (IOException e) {
-//                                throw new RuntimeException(e);
-//                            }
-//                        }
-//                        Log.d("PhotoPicker", "Selected URI: " + uri);
-//                    } else {
-//                        Log.d("PhotoPicker", "No media selected");
-//                    }
-//                });
-//
-//
-//
-//
-//        connectionsClient = Nearby.getConnectionsClient(requireContext());
-//        discoveredEndpoints = new ArrayList<>();
-//
-//        if (!arePermissionsGranted()) {
-//            requestPermissions();
-//        } else {
-//            startAdvertising();
-//            startDiscovery();
-//        }
+        chatAdapter = new ChatsAdapter(getContext(), new ArrayList<ChatMessage>());
+
+        messageEditText = view.findViewById(R.id.messageEditText);
+        sendButton = view.findViewById(R.id.sendButton);
+        imageButton = view.findViewById(R.id.attachButton);
+        chatListView = view.findViewById(R.id.chatListView);
+        imageView=view.findViewById(R.id.imageView);
+        List<ChatMessage> chatMessages = new ArrayList<>();
+
+
+        chatListView.setAdapter(chatAdapter);        //chatRecyclerView = findViewById(R.id.chatRecyclerView);
+
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String message = messageEditText.getText().toString();
+                Drawable imageDrawable = imageView.getDrawable();
+
+
+                if (!message.isEmpty() || imageDrawable != null) {
+                    try {
+                        sendMessage(message,imageDrawable);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                    messageEditText.setText("");
+                    imageView.setImageDrawable(null);
+
+
+                }
+            }
+        });
+
+
+
+        imageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent iGallery= new Intent(Intent.ACTION_PICK);
+
+                openAttachmentPicker();
+            }
+        });
+
+        attachmentLauncher =
+                registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
+                    // Callback is invoked after the user selects a media item or closes the
+                    // photo picker.
+                    if (uri != null) {
+//                        Context context = this; // Replace 'this' with your actual context
+                        ContentResolver  contentResolver = requireContext().getContentResolver();
+//                        Drawable imageDrawable = getDrawableFromUri(uri);
+//                        imageDrawable = imageView.getDrawable();
+                        ImageDecoder.Source source = null;
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            source = ImageDecoder.createSource(contentResolver, uri);
+                        }
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            try {
+                                Bitmap imageBitmap = ImageDecoder.decodeBitmap(source);
+                                imageView.setImageBitmap(imageBitmap);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        Log.d("PhotoPicker", "Selected URI: " + uri);
+                    } else {
+                        Log.d("PhotoPicker", "No media selected");
+                    }
+                });
+
+
+
+
+        connectionsClient = Nearby.getConnectionsClient(requireContext());
+        discoveredEndpoints = new ArrayList<>();
+
+        if (!arePermissionsGranted()) {
+            requestPermissions();
+        } else {
+            startAdvertising();
+            startDiscovery();
+        }
         return view;
     }
 
