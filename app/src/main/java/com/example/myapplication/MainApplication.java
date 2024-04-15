@@ -22,6 +22,7 @@ public class MainApplication extends AppCompatActivity {
     private static final int NAV_CHAT_ID = R.id.navChat;
     private static  String[] REQUIRED_PERMISSIONS ;
     private static final int REQUEST_CODE_PERMISSIONS = 1;
+    ChatApplication chat;
     private static final int NAV_SETTINGS_ID = R.id.navSettings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +35,9 @@ public class MainApplication extends AppCompatActivity {
 //        if (!arePermissionsGranted()) {
 //            requestPermissions();
 //        }
-        replacement(new ChatApplication());
+
+        chat=new ChatApplication();
+        replacement(chat);
 
 
 
@@ -69,6 +72,13 @@ public class MainApplication extends AppCompatActivity {
     private void replacement(Fragment fragment) {
         // Here, you need to define what you want to do with the fragment
         // For example, if you want to replace the current fragment with the new one, you can do something like this:
+        if (fragment instanceof GameApplication){
+            if (chat !=null){
+                chat.onDestroy();
+            }
+
+        }
+
         FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.beginTransaction()
                 .replace(R.id.frame_layout, fragment) // Assuming you have a container in your layout with the id "fragment_container"

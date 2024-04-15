@@ -297,6 +297,8 @@ public class ChatApplication extends Fragment {
         }
     }
 
+
+
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
                 if (arePermissionsGranted()) {
