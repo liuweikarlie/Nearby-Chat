@@ -256,10 +256,6 @@ public class MainApplication extends AppCompatActivity {
 
 
 
-
-
-
-
         for (String permission : REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, permission)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -268,6 +264,7 @@ public class MainApplication extends AppCompatActivity {
         }
         return true;
     }
+
 
 
 
