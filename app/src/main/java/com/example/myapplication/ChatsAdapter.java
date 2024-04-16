@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,14 +33,14 @@ public class ChatsAdapter extends ArrayAdapter<ChatMessage> {
         // Check if the chatMessage is not null
         if (chatMessage != null) {
             String message = chatMessage.getMessage();
-            Drawable imageDrawable = chatMessage.getImageDrawable();
+            Bitmap imageDrawable = chatMessage.getImageDrawable();
 
             // Find and update the views with the chat message and image
             TextView messageTextView = convertView.findViewById(R.id.message_text_view);
             ImageView imageView = convertView.findViewById(R.id.image_view);
 
             messageTextView.setText(message);
-            imageView.setImageDrawable(imageDrawable);
+            imageView.setImageBitmap(imageDrawable);
         }
 
         return convertView;

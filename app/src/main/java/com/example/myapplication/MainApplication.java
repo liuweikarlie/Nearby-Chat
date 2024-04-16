@@ -355,7 +355,14 @@ public class MainApplication extends AppCompatActivity {
             }
         }
 
-        appendToChat("Me: " + message, imageDrawable);
+        if (imageDrawable!=null) {
+
+            appendToChat("Me: " + message, ((BitmapDrawable) imageDrawable).getBitmap());
+        }
+        else{
+            appendToChat("Me: " + message, null);
+
+        }
     }
     private File createImageFile(Drawable imageDrawable) {
         try {
@@ -375,7 +382,7 @@ public class MainApplication extends AppCompatActivity {
 
 
 
-    private void appendToChat(String message,Drawable image) {
+    private void appendToChat(String message,Bitmap image) {
         ChatMessage chat=new ChatMessage(message,image);
 
         chatAdapter.add(chat);
@@ -459,9 +466,21 @@ public class MainApplication extends AppCompatActivity {
                         String message = new String(payload.asBytes(), StandardCharsets.UTF_8);
                         appendToChat(endpointId + ": " + message,null);
                     } else if (payload.getType() == Payload.Type.FILE) {
-                        File receivedFile = payload.asFile().asJavaFile();
-                        Drawable imageDrawable = loadImageFromFile(receivedFile);
-                        appendToChat(null,imageDrawable);
+//                        File fromPayload = payload.asFile().asJavaFile();
+//                        Uri uri = Uri.fromFile(fromPayload);
+                        Uri uri=payload.asFile().asUri();
+                        InputStream inputStream = null;
+                        try {
+                            inputStream = getApplicationContext().getContentResolver().openInputStream(uri);
+                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                            appendToChat(null,bitmap);
+                        } catch (FileNotFoundException e) {
+                            Log.d("Image Receive Problem", "Image Fail at Receive");
+                            throw new RuntimeException(e);
+                        }
+
+
+
                     }
                 }
 

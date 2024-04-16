@@ -1,12 +1,13 @@
 package com.example.myapplication;
 
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 
 public class ChatMessage {
     public String message;
-    public Drawable imageDrawable;
+    public Bitmap imageDrawable;
 
-    public ChatMessage(String message, Drawable imageDrawable) {
+    public ChatMessage(String message, Bitmap imageDrawable) {
         this.message = message;
         this.imageDrawable = imageDrawable;
     }
@@ -15,7 +16,7 @@ public class ChatMessage {
         return message;
     }
 
-    public Drawable getImageDrawable() {
+    public Bitmap getImageDrawable() {
         return imageDrawable;
     }
 }

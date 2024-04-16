@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.android.gms:play-services-nearby:17.0.0'
+    implementation 'com.google.android.gms:play-services-nearby:18.0.0'
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
