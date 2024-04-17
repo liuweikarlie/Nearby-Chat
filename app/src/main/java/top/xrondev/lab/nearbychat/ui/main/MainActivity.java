@@ -21,10 +21,11 @@ import top.xrondev.lab.nearbychat.adapter.ChannelAdapter;
 import top.xrondev.lab.nearbychat.ui.chat.ChatActivity;
 import top.xrondev.lab.nearbychat.utils.NearbyConnectionHelper;
 
-public class MainActivity extends AppCompatActivity implements ChannelAdapter.ItemClickListener {
+public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     private ChannelAdapter adapter;
+    private ArrayList<String> channels = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,37 +34,59 @@ public class MainActivity extends AppCompatActivity implements ChannelAdapter.It
 
         // Request permissions in runtime
         boolean permissionGranted = checkPermissions();
-        if(!permissionGranted) {
+        if (!permissionGranted) {
             Log.e("Permission", "Permissions not granted");
         }
 
-        // Nearby Connection helper class
-        NearbyConnectionHelper connectionHelper = NearbyConnectionHelper.getInstance(this);
-
-        // TODO: TRY_CATCH the APIException
-        connectionHelper.startAdvertising();
-        connectionHelper.startDiscovery();
-
 
         // channels
-        ArrayList<String> channels = new ArrayList<>();
         channels.add("Public Channel");
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         adapter = new ChannelAdapter(this, channels);
-        adapter.setClickListener(this);
+        adapter.setClickListener(this::onChannelClick);
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         // Adding a divider between items in the RecyclerView
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         recyclerView.addItemDecoration(decoration);
+
+        // Nearby Connection helper class
+        NearbyConnectionHelper connectionHelper = NearbyConnectionHelper.getInstance(this);
+        connectionHelper.setDiscoveryCallback(new NearbyConnectionHelper.customDiscoveryCallback() {
+            @Override
+            public void onEndpointFound(String endpointId, String endpointName) {
+                // Add the endpoint to the list of channels
+                runOnUiThread(()->{
+                    channels.add(endpointName);
+                    adapter.notifyItemInserted(channels.size() - 1);
+                });
+            }
+
+            @Override
+            public void onEndpointLost(String endpointId) {
+                // Remove the endpoint from the list of channels
+                runOnUiThread(()->{
+                    int index = channels.indexOf(endpointId);
+                    if (index != -1) {
+                        channels.remove(index);
+                        adapter.notifyItemRemoved(index);
+                    }
+                });
+            }
+        });
+
+
+        // TODO: TRY_CATCH the APIException
+        connectionHelper.startAdvertising();
+        connectionHelper.startDiscovery();
     }
 
+
     // method called when an item in the RecyclerView is clicked
-    public void onItemClick(View view, int position) {
-        Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra("channel_name", adapter.getItem(position));
-        startActivity(intent);
+    private void onChannelClick(View view, int i) {
+        String channelName = channels.get(i);
+        ChatActivity.startActivity(this, channelName);
     }
 
     public boolean checkPermissions() {

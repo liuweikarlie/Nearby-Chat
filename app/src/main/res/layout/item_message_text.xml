@@ -4,17 +4,28 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="8dp">
+    <!-- TextView for the username -->
+    <TextView
+        android:id="@+id/tvUsername"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/username_placeholder"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/textMessage"
+        app:layout_constraintStart_toStartOf="@id/textMessage" />
 
     <TextView
         android:id="@+id/textMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
         android:background="@drawable/message_background"
+        android:padding="8dp"
         android:textColor="@android:color/black"
-        android:padding="12dp"
-        app:layout_constraintStart_toStartOf="parent"
+        android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintWidth_default="wrap"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_default="wrap" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

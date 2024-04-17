@@ -19,25 +19,37 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 
+import java.util.ArrayList;
+
 public class NearbyConnectionHelper {
-    private static NearbyConnectionHelper instance; // Singleton instance for manage connections across the app
 
     private static final String SERVICE_ID = "NearbyChat_Service";
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
-
+    private static NearbyConnectionHelper instance; // Singleton instance for manage connections across the app
+    public final String localEndpointName; // Generated local identifier
     private final ConnectionsClient connectionsClient;
+    private final ArrayList<String> connectedEndpoints = new ArrayList<>();
     private final PayloadCallback payloadCallback = new PayloadCallback() {
 
         @Override
         public void onPayloadReceived(@NonNull String s, @NonNull Payload payload) {
             // Payload received
+            Log.i("ChatActivity", "Payload received from: " + s);
+            if (customPayloadCallback != null) {
+                customPayloadCallback.onPayloadReceived(s, payload);
+            }
         }
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String s, @NonNull PayloadTransferUpdate payloadTransferUpdate) {
             // Payload transfer update
+            if (customPayloadCallback != null) {
+                customPayloadCallback.onPayloadTransferUpdate(s, payloadTransferUpdate);
+            }
         }
     };
+    private customDiscoveryCallback customDiscoveryCallback;
+    private customConnectionCallback customConnectionCallback;
     private final ConnectionLifecycleCallback connectionLifecycleCallback = new ConnectionLifecycleCallback() {
         @Override
         public void onConnectionInitiated(@NonNull String s, @NonNull ConnectionInfo connectionInfo) {
@@ -45,40 +57,54 @@ public class NearbyConnectionHelper {
             // For private channels, you can show a dialog to accept or reject the conversation,
             // but the connection is actually already established.
 
+            if (customConnectionCallback != null) {
+                customConnectionCallback.onConnectionInitiated(s, connectionInfo);
+            }
+
             connectionsClient.acceptConnection(s, payloadCallback);
         }
 
         @Override
         public void onConnectionResult(@NonNull String s, @NonNull ConnectionResolution connectionResolution) {
-            if (connectionResolution.getStatus().isSuccess()) {
-                // We're connected! Can now start sending and receiving data.
-                onConnectionConnected(s);
-            } else {
-                // Connection attempt failed or was rejected by either side.
-                onConnectionFailed(s);
+            boolean isSuccess = connectionResolution.getStatus().isSuccess();
+            if (isSuccess) {
+                Log.i("NearbyService", "Connected to: " + s);
+                connectedEndpoints.add(s);
+            }
+            if (customConnectionCallback != null) {
+                customConnectionCallback.onConnectionResult(s, isSuccess);
             }
         }
 
         @Override
         public void onDisconnected(@NonNull String s) {
-            onConnectionDisconnected(s);
+            if (customConnectionCallback != null) {
+                customConnectionCallback.onDisconnected(s);
+            }
         }
     };
-    public final String localEndpointName; // Generated local identifier
     private final EndpointDiscoveryCallback endpointDiscoveryCallback = new EndpointDiscoveryCallback() {
         @Override
         public void onEndpointFound(@NonNull String s, @NonNull DiscoveredEndpointInfo discoveredEndpointInfo) {
             // An endpoint was found. request a connection to it.
             connectionsClient.requestConnection(localEndpointName, s, connectionLifecycleCallback);
+            Log.d("NearbyService", "Endpoint found: " + discoveredEndpointInfo.getEndpointName());
 
+            if (customDiscoveryCallback != null) {
+                customDiscoveryCallback.onEndpointFound(s, discoveredEndpointInfo.getEndpointName());
+            }
         }
 
         @Override
         public void onEndpointLost(@NonNull String endpointId) {
             // A previously discovered endpoint has gone away.
-
+            connectedEndpoints.remove(endpointId);
+            if (customDiscoveryCallback != null) {
+                customDiscoveryCallback.onEndpointLost(endpointId);
+            }
         }
     };
+    private customPayloadCallback customPayloadCallback;
 
     private NearbyConnectionHelper(Context context) {
         this.connectionsClient = Nearby.getConnectionsClient(context);
@@ -92,7 +118,6 @@ public class NearbyConnectionHelper {
         }
         return instance;
     }
-
 
     public void startAdvertising() {
         connectionsClient.startAdvertising(
@@ -132,19 +157,6 @@ public class NearbyConnectionHelper {
         connectionsClient.stopAllEndpoints();
     }
 
-    private void onConnectionConnected(String endpointId) {
-        // Handle successful connection
-        Log.i("NearbyService", "Connected to: " + endpointId);
-    }
-
-    private void onConnectionFailed(String endpointId) {
-        // Handle failed connection
-    }
-
-    private void onConnectionDisconnected(String endpointId) {
-        // Handle disconnection
-    }
-
     private void onDiscoveryStarted() {
         // Discovery started
     }
@@ -161,10 +173,59 @@ public class NearbyConnectionHelper {
         // Advertising failed
     }
 
-    public int getClientsCount() {
-        // Get the number of connected clients
-        return 0;
+    public void setDiscoveryCallback(customDiscoveryCallback discoveryCallback) {
+        this.customDiscoveryCallback = discoveryCallback;
     }
 
+    public void setConnectionCallback(customConnectionCallback connectionCallback) {
+        this.customConnectionCallback = connectionCallback;
+    }
+
+    public void setPayloadCallback(customPayloadCallback payloadCallback) {
+        this.customPayloadCallback = payloadCallback;
+    }
+
+    public void sendPayload(String endpointId, Payload payload) {
+        Log.d("SENDER", endpointId);
+        if (endpointId.equals("Public Channel")) {
+            Log.i("NearbyService PUBLIC", "TRY SEND");
+            connectionsClient.sendPayload(connectedEndpoints, payload).addOnSuccessListener(aVoid -> {
+                // Payload sent successfully
+                Log.i("NearbyService PUBLIC", "sent");
+            }).addOnFailureListener(e -> {
+                // Payload failed to send
+                Log.i("NearbyService PUBLIC", "ERROR" + e.getMessage());
+
+            });;
+        } else {
+            connectionsClient.sendPayload(localEndpointName, payload).addOnSuccessListener(aVoid -> {
+                // Payload sent successfully
+                Log.i("NearbyService", "sent");
+            }).addOnFailureListener(e -> {
+                // Payload failed to send
+            });
+        }
+    }
+
+
+    public interface customDiscoveryCallback {
+        void onEndpointFound(String endpointId, String endpointName);
+
+        void onEndpointLost(String endpointId);
+    }
+
+    public interface customConnectionCallback {
+        void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo);
+
+        void onConnectionResult(String endpointId, boolean isSuccess);
+
+        void onDisconnected(String endpointId);
+    }
+
+    public interface customPayloadCallback {
+        void onPayloadReceived(String endpointId, Payload payload);
+
+        void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update);
+    }
 }
 

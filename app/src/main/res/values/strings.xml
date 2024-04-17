@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">NearByChat</string>
     <string name="back_button_description">Back</string>
+    <string name="type_message">Type message to send</string>
+    <string name="send">Send</string>
+    <string name="username_placeholder">Username</string>
 </resources>
