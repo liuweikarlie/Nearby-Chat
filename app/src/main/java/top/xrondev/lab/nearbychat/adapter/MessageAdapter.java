@@ -1,8 +1,11 @@
 package top.xrondev.lab.nearbychat.adapter;
 
+import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -11,11 +14,15 @@ import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.nearby.connection.Payload;
+import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.models.Message;
+import top.xrondev.lab.nearbychat.ui.chat.ChatActivity;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final List<Message> messages;
@@ -55,9 +62,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case 0: // Text
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_text, parent, false);
                 return new TextMessageViewHolder(view);
-//            case 1: // Image
-//                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_image, parent, false);
-//                return new ImageMessageViewHolder(view);
+            case 1: // Image
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_image, parent, false);
+                return new ImageMessageViewHolder(view);
 //            case 2: // Video
 //                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_video, parent, false);
 //                return new VideoMessageViewHolder(view);
@@ -77,9 +84,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case 0:
                 ((TextMessageViewHolder) holder).bind(message, showUsername);
                 break;
-//            case 1:
-//                ((ImageMessageViewHolder) holder).bind(message);
-//                break;
+            case 1:
+                ((ImageMessageViewHolder) holder).bind(message);
+                break;
 //            case 2:
 //                ((VideoMessageViewHolder) holder).bind(message);
 //                break;
@@ -143,36 +150,40 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
 
-//    public static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
-//        private ImageView imageView;
-//        private ConstraintLayout constraintLayout;
-//
-//        public ImageMessageViewHolder(View itemView) {
-//            super(itemView);
-//            imageView = itemView.findViewById(R.id.imageMessage);
-//            constraintLayout = (ConstraintLayout) itemView;
-//        }
-//
-//        public void bind(Message message) {
-//            // Use Picasso or another library to load the image from a URL or resource
-//            Picasso.get().load(message.getContent()).into(imageView);
-//
-//            ConstraintSet constraintSet = new ConstraintSet();
-//            constraintSet.clone(constraintLayout);
-//
-//            if (message.isFromMe()) {
-//                constraintSet.clear(imageView.getId(), ConstraintSet.START);
-//                constraintSet.connect(imageView.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
-//                imageView.setSelected(true); // Apply 'me' background state
-//            } else {
-//                constraintSet.clear(imageView.getId(), ConstraintSet.END);
-//                constraintSet.connect(imageView.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
-//                imageView.setSelected(false); // Apply 'other' background state
-//            }
-//
-//            constraintSet.applyTo(constraintLayout);
-//        }
-//    }
+    public static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
+        private ImageView imageView;
+        private ConstraintLayout constraintLayout;
+
+        public ImageMessageViewHolder(View itemView) {
+            super(itemView);
+            imageView = itemView.findViewById(R.id.imageMessage);
+            constraintLayout = (ConstraintLayout) itemView;
+        }
+
+        public void bind(Message message) {
+            // Use Picasso or another library to load the image from a URL or resource
+            Log.d("ImageMessageViewHolder", "bind: " + message.getContent());
+            Uri file = Objects.requireNonNull(message.getContent().asFile()).asUri();
+            Log.d("ImageMessageViewHolder", "URI: " + file);
+            Picasso.get().load(file).into(imageView);
+
+
+            ConstraintSet constraintSet = new ConstraintSet();
+            constraintSet.clone(constraintLayout);
+
+            if (message.isFromMe()) {
+                constraintSet.clear(imageView.getId(), ConstraintSet.START);
+                constraintSet.connect(imageView.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                imageView.setSelected(true); // Apply 'me' background state
+            } else {
+                constraintSet.clear(imageView.getId(), ConstraintSet.END);
+                constraintSet.connect(imageView.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                imageView.setSelected(false); // Apply 'other' background state
+            }
+
+            constraintSet.applyTo(constraintLayout);
+        }
+    }
 
 }
 

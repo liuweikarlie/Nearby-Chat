@@ -29,6 +29,9 @@ public class NearbyConnectionHelper {
     public final String localEndpointName; // Generated local identifier
     private final ConnectionsClient connectionsClient;
     private final ArrayList<String> connectedEndpoints = new ArrayList<>();
+    private customDiscoveryCallback customDiscoveryCallback;
+    private customConnectionCallback customConnectionCallback;
+    private customPayloadCallback customPayloadCallback;
     private final PayloadCallback payloadCallback = new PayloadCallback() {
 
         @Override
@@ -42,14 +45,15 @@ public class NearbyConnectionHelper {
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String s, @NonNull PayloadTransferUpdate payloadTransferUpdate) {
+            if (payloadTransferUpdate.getStatus() == PayloadTransferUpdate.Status.SUCCESS) {
+                Log.i("NearbyService", "Payload transfer success");
+            }
             // Payload transfer update
             if (customPayloadCallback != null) {
                 customPayloadCallback.onPayloadTransferUpdate(s, payloadTransferUpdate);
             }
         }
     };
-    private customDiscoveryCallback customDiscoveryCallback;
-    private customConnectionCallback customConnectionCallback;
     private final ConnectionLifecycleCallback connectionLifecycleCallback = new ConnectionLifecycleCallback() {
         @Override
         public void onConnectionInitiated(@NonNull String s, @NonNull ConnectionInfo connectionInfo) {
@@ -104,7 +108,6 @@ public class NearbyConnectionHelper {
             }
         }
     };
-    private customPayloadCallback customPayloadCallback;
 
     private NearbyConnectionHelper(Context context) {
         this.connectionsClient = Nearby.getConnectionsClient(context);
@@ -186,19 +189,18 @@ public class NearbyConnectionHelper {
     }
 
     public void sendPayload(String endpointId, Payload payload) {
-        Log.d("SENDER", endpointId);
         if (endpointId.equals("Public Channel")) {
             Log.i("NearbyService PUBLIC", "TRY SEND");
             connectionsClient.sendPayload(connectedEndpoints, payload).addOnSuccessListener(aVoid -> {
                 // Payload sent successfully
-                Log.i("NearbyService PUBLIC", "sent");
+                Log.i("NearbyService PUBLIC", "sent" + payload.getType());
             }).addOnFailureListener(e -> {
                 // Payload failed to send
                 Log.i("NearbyService PUBLIC", "ERROR" + e.getMessage());
 
-            });;
+            });
         } else {
-            connectionsClient.sendPayload(localEndpointName, payload).addOnSuccessListener(aVoid -> {
+            connectionsClient.sendPayload(endpointId, payload).addOnSuccessListener(aVoid -> {
                 // Payload sent successfully
                 Log.i("NearbyService", "sent");
             }).addOnFailureListener(e -> {

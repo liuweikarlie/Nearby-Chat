@@ -13,6 +13,19 @@ public class Message {
         this.type = type;
     }
 
+    public Message(String sender, String message) {
+        this.sender = sender;
+        this.payload = Payload.fromBytes(message.getBytes());
+        this.type = MessageType.TEXT;
+    }
+
+    public Message(String sender, Payload payload, MessageType type, String filename) {
+        this.sender = sender;
+        this.payload = payload;
+        this.type = type;
+        payload.setFileName(filename);
+    }
+
     public String getSender() {
         return sender;
     }
