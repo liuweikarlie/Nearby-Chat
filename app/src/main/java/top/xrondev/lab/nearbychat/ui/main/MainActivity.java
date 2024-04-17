@@ -101,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.BLUETOOTH_CONNECT,
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.NEARBY_WIFI_DEVICES,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.READ_MEDIA_IMAGES,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
         };
         if (!hasPermissions(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSIONS_REQUEST_CODE);

@@ -3,14 +3,8 @@ package top.xrondev.lab.nearbychat.ui.chat;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,7 +13,6 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -37,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.adapter.MessageAdapter;
@@ -87,12 +79,17 @@ public class ChatActivity extends AppCompatActivity {
                 switch (payload.getType()) {
                     case Payload.Type.BYTES:
                         // Handling byte payload
-                        message = new Message(endpointId, payload, MessageType.TEXT);
+                        if (connectionHelper.isFilenameMessage(payload) == null) {
+                            message = new Message(endpointId, payload, MessageType.TEXT);
+                        } else {
+                            // Handling filename message
+                            Log.d("ChatActivity", "Filename message: " + connectionHelper.isFilenameMessage(payload));
+                        }
                         break;
                     case Payload.Type.FILE:
                         // Handling file payload - adjust MessageType accordingly
                         // TODO: distinguish between image, video, audio, and other file types
-                        message = new Message(endpointId, payload, MessageType.IMAGE, "image.jpg");
+                        message = new Message(endpointId, payload, MessageType.IMAGE);
                         break;
                     // TODO: STREAM AND UNKNOWN
                 }
@@ -108,7 +105,9 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
                 // Transfer status update, like progress
-                Log.d("ChatActivity", "Payload transfer update: " + update.getStatus() + " " + update.getBytesTransferred() + " " + update.getTotalBytes() + " " + update.getPayloadId());
+                Log.d("ChatActivity", "Payload transfer update: " + " To: " +
+                        " " + endpointId + " " + update.getStatus() + " " + update.getBytesTransferred()
+                        + " " + update.getTotalBytes() + " " + update.getPayloadId());
             }
 
         });
@@ -158,12 +157,20 @@ public class ChatActivity extends AppCompatActivity {
                     Log.i("ChatActivity", "Media URI: " + uri);
                     if (uri != null) {
                         try {
-                            File file = uriToFile(this, uri, "image.jpg");
+                            File file = uriToFile(uri, uri.getLastPathSegment());
                             Payload filePayload = Payload.fromFile(file);
+
+
+                            String filenameMessage = "_METADATA_FILENAME:" + filePayload.getId() + ":" + file.getName();
+                            Payload filenamePayload = Payload.fromBytes(filenameMessage.getBytes());
+                            connectionHelper.sendPayload(endpointId, filenamePayload);
+
+
                             Message message = new Message("me", filePayload, MessageType.IMAGE);
-                            Log.d("ChatActivity", "Sending file: " +filePayload.asFile().getSize() + filePayload.asFile());
-                            connectionHelper.sendPayload(endpointId, message.getContent());
+                            Log.d("ChatActivity", "Sending file: " + filePayload.asFile().getSize() + filePayload.asFile());
+                            connectionHelper.sendPayload(endpointId, filePayload);
                             messageAdapter.addMessage(message);
+
                         } catch (FileNotFoundException e) {
                             Toast.makeText(ChatActivity.this, "File not found", Toast.LENGTH_SHORT).show();
                         }
@@ -181,8 +188,8 @@ public class ChatActivity extends AppCompatActivity {
                 .build());
     }
 
-    public File uriToFile(Context context, Uri contentUri, String fileName) {
-        context = this;
+    public File uriToFile(Uri contentUri, String fileName) {
+        Context context = this;
         File file = null;
         ContentResolver resolver = context.getContentResolver();
 
