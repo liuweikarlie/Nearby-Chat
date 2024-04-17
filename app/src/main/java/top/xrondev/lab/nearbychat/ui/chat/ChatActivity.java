@@ -71,6 +71,7 @@ public class ChatActivity extends AppCompatActivity {
         // message adapter
         messageAdapter = new MessageAdapter(messages);
         chatRecyclerView.setAdapter(messageAdapter);
+
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         // Nearby Connection helper class
@@ -104,6 +105,10 @@ public class ChatActivity extends AppCompatActivity {
                     // Assuming `messageAdapter` is a list adapter for handling messages
                     messageAdapter.addMessage(message);
                     messageAdapter.notifyDataSetChanged();
+                    int targetPosition=messageAdapter.getItemCount()-1;
+
+                    chatRecyclerView.smoothScrollToPosition(targetPosition);
+
                 }
             }
 
@@ -143,6 +148,8 @@ public class ChatActivity extends AppCompatActivity {
                 Message message = new Message("me", payload, MessageType.TEXT);
                 messageAdapter.addMessage(message);
                 messageAdapter.notifyDataSetChanged();
+                int targetPosition=messageAdapter.getItemCount()-1;
+                chatRecyclerView.smoothScrollToPosition(targetPosition);
                 inputMessage.setText(""); // Clear the input field
             }
         });
@@ -188,6 +195,8 @@ public class ChatActivity extends AppCompatActivity {
                             Log.d("ChatActivity", "Sending file: " + filePayload.asFile().getSize() + filePayload.asFile());
                             connectionHelper.sendPayload(endpointId, filePayload);
                             messageAdapter.addMessage(message);
+                            int targetPosition=messageAdapter.getItemCount()-1;
+                            chatRecyclerView.smoothScrollToPosition(targetPosition);
 
                         } catch (FileNotFoundException e) {
                             Toast.makeText(ChatActivity.this, "File not found", Toast.LENGTH_SHORT).show();
