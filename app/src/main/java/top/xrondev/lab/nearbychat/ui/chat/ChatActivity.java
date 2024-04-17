@@ -161,10 +161,11 @@ public class ChatActivity extends AppCompatActivity {
 
         // close menu layout when clicked outside
         // TODO: not working
-        chatRecyclerView.setOnClickListener(v -> {
+        chatRecyclerView.setOnTouchListener((v, event) -> {
             if (menuLayout.getVisibility() == View.VISIBLE) {
                 menuLayout.setVisibility(View.GONE);
             }
+            return false;
         });
 
 
