@@ -20,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+
+
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 
@@ -35,6 +37,7 @@ import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.adapter.MessageAdapter;
 import top.xrondev.lab.nearbychat.models.Message;
 import top.xrondev.lab.nearbychat.models.MessageType;
+import top.xrondev.lab.nearbychat.ui.main.MainActivity;
 import top.xrondev.lab.nearbychat.utils.NearbyConnectionHelper;
 
 public class ChatActivity extends AppCompatActivity {
@@ -44,6 +47,8 @@ public class ChatActivity extends AppCompatActivity {
     private NearbyConnectionHelper connectionHelper;
     private EditText inputMessage;
     private Button sendButton;
+
+    private ImageButton btnBack;
     private String endpointId;
 
     private ActivityResultLauncher<PickVisualMediaRequest> mediaResultLauncher;
@@ -112,6 +117,18 @@ public class ChatActivity extends AppCompatActivity {
 
         });
         // Send button click listener
+        btnBack = findViewById(R.id.btnBack);
+
+        btnBack.setOnClickListener(v->
+                {
+                    Intent returnIntent = new Intent(ChatActivity.this,MainActivity.class);
+
+                    setResult(RESULT_OK, returnIntent);
+                    finish();
+                }
+        );
+
+
         inputMessage = findViewById(R.id.inputMessage);
         sendButton = findViewById(R.id.btnSend);
         sendButton.setOnClickListener(v -> {
@@ -181,6 +198,10 @@ public class ChatActivity extends AppCompatActivity {
         btnMedias.setOnClickListener(v -> selectMedia());
 
     }
+
+
+
+
 
     private void selectMedia() {
         mediaResultLauncher.launch(new PickVisualMediaRequest.Builder()
