@@ -9,11 +9,12 @@
         android:id="@+id/imageMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:scaleType="centerCrop"
-        android:padding="8dp"
         android:background="@drawable/message_background"
-        app:layout_constraintTop_toTopOf="parent"
+        android:padding="8dp"
+        android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintWidth_default="wrap" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
