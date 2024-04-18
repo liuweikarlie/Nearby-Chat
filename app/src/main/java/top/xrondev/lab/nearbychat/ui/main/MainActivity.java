@@ -3,10 +3,12 @@ package top.xrondev.lab.nearbychat.ui.main;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -113,6 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.READ_MEDIA_IMAGES,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.RECORD_AUDIO
+                Manifest.permission.NFC,
         };
         if (!hasPermissions(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSIONS_REQUEST_CODE);

@@ -88,8 +88,14 @@ public class NearbyConnectionHelper {
             if (customConnectionCallback != null) {
                 customConnectionCallback.onConnectionInitiated(s, connectionInfo);
             }
-
-            connectionsClient.acceptConnection(s, payloadCallback);
+            Log.d("NearbyService", "Connection initiated: " + connectionInfo.getEndpointName());
+            connectionsClient.acceptConnection(s, payloadCallback).addOnSuccessListener(aVoid -> {
+                // Connection accepted
+                Log.d("NearbyService CONN", "Connection accepted");
+            }).addOnFailureListener(e -> {
+                // Connection failed to accept
+                Log.e("NearbyService CONN", "Connection failed to accept: " + e.getMessage());
+            });
         }
 
         @Override
@@ -117,7 +123,13 @@ public class NearbyConnectionHelper {
         @Override
         public void onEndpointFound(@NonNull String s, @NonNull DiscoveredEndpointInfo discoveredEndpointInfo) {
             // An endpoint was found. request a connection to it.
-            connectionsClient.requestConnection(localEndpointName, s, connectionLifecycleCallback);
+            connectionsClient.requestConnection(localEndpointName, s, connectionLifecycleCallback).addOnFailureListener(e -> {
+                // Connection request failed
+                Log.e("NearbyService FAILED", "Connection request failed: " + e.getMessage());
+            }).addOnSuccessListener(aVoid -> {
+                // Connection request succeeded
+                Log.d("NearbyService", "Connection request succeeded");
+            });
             Log.d("NearbyService", "Endpoint found: " + discoveredEndpointInfo.getEndpointName());
 
             if (customDiscoveryCallback != null) {
