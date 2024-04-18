@@ -234,6 +234,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
                 if (uri != null) {
                     mediaPlayer = new MediaPlayer();
+
+                    mediaPlayer.setOnCompletionListener(mp -> {
+                        stopPlaying();
+                        mp.release();
+                    });
+
                     try {
                         mediaPlayer.setDataSource(v.getContext(), uri);
                         mediaPlayer.prepare();
@@ -241,7 +247,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         isPlaying = true;
                         playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.e("AudioMessageViewHolder", "Error playing audio", e);
                     }
                 }
             }
