@@ -1,9 +1,9 @@
 package top.xrondev.lab.nearbychat.ui.chat;
 
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,11 +20,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-
 
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
@@ -36,7 +33,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.adapter.MessageAdapter;
@@ -68,6 +64,7 @@ public class ChatActivity extends AppCompatActivity {
         context.startActivity(intent);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +82,8 @@ public class ChatActivity extends AppCompatActivity {
 
         // Nearby Connection helper class
         connectionHelper = NearbyConnectionHelper.getInstance(this);
+
+        // ON RECEIVE:
         connectionHelper.setPayloadCallback(new NearbyConnectionHelper.customPayloadCallback() {
             @Override
             public void onPayloadReceived(String endpointId, Payload payload) {
@@ -104,7 +103,9 @@ public class ChatActivity extends AppCompatActivity {
                     case Payload.Type.FILE:
                         // Handling file payload - adjust MessageType accordingly
                         // TODO: distinguish between image, video, audio, and other file types
+
                         message = new Message(endpointId, payload, MessageType.IMAGE);
+
                         break;
                     // TODO: STREAM AND UNKNOWN
                 }
@@ -114,7 +115,7 @@ public class ChatActivity extends AppCompatActivity {
                     // Assuming `messageAdapter` is a list adapter for handling messages
                     messageAdapter.addMessage(message);
                     messageAdapter.notifyDataSetChanged();
-                    int targetPosition=messageAdapter.getItemCount()-1;
+                    int targetPosition = messageAdapter.getItemCount() - 1;
 
                     chatRecyclerView.smoothScrollToPosition(targetPosition);
 
@@ -133,9 +134,9 @@ public class ChatActivity extends AppCompatActivity {
         // Send button click listener
         btnBack = findViewById(R.id.btnBack);
 
-        btnBack.setOnClickListener(v->
+        btnBack.setOnClickListener(v ->
                 {
-                    Intent returnIntent = new Intent(ChatActivity.this,MainActivity.class);
+                    Intent returnIntent = new Intent(ChatActivity.this, MainActivity.class);
 
                     setResult(RESULT_OK, returnIntent);
                     finish();
@@ -157,7 +158,7 @@ public class ChatActivity extends AppCompatActivity {
                 Message message = new Message("me", payload, MessageType.TEXT);
                 messageAdapter.addMessage(message);
                 messageAdapter.notifyDataSetChanged();
-                int targetPosition=messageAdapter.getItemCount()-1;
+                int targetPosition = messageAdapter.getItemCount() - 1;
                 chatRecyclerView.smoothScrollToPosition(targetPosition);
                 inputMessage.setText(""); // Clear the input field
             }
@@ -186,7 +187,7 @@ public class ChatActivity extends AppCompatActivity {
 
         mediaResultLauncher = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(),
                 uri -> {
-                    // Handle the URI result here (e.g., display or upload it)
+                    // Handle the URI result here
                     Log.i("ChatActivity", "Media URI: " + uri);
                     if (uri != null) {
                         try {
@@ -194,16 +195,11 @@ public class ChatActivity extends AppCompatActivity {
                             Payload filePayload = Payload.fromFile(file);
 
 
-                            String filenameMessage = "_METADATA_FILENAME:" + filePayload.getId() + ":" + file.getName();
-                            Payload filenamePayload = Payload.fromBytes(filenameMessage.getBytes());
-                            connectionHelper.sendPayload(endpointId, filenamePayload);
-
-
                             Message message = new Message("me", filePayload, MessageType.IMAGE);
                             Log.d("ChatActivity", "Sending file: " + filePayload.asFile().getSize() + filePayload.asFile());
                             connectionHelper.sendPayload(endpointId, filePayload);
                             messageAdapter.addMessage(message);
-                            int targetPosition=messageAdapter.getItemCount()-1;
+                            int targetPosition = messageAdapter.getItemCount() - 1;
                             chatRecyclerView.smoothScrollToPosition(targetPosition);
 
                         } catch (FileNotFoundException e) {
@@ -216,30 +212,29 @@ public class ChatActivity extends AppCompatActivity {
         btnMedias.setOnClickListener(v -> selectMedia());
 
 
-
-
         Button btnAudio = findViewById(R.id.btnAudio);
         btnAudio.setOnTouchListener((v, event) -> {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                // Start recording audio
-                startRecording();
-            } else if (event.getAction() == MotionEvent.ACTION_UP) {
-                // Stop recording audio and send the recorded audio file
-                stopRecording();
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    // Start recording
+                    startRecording();
+                    return true;  // Consume the event to handle the touch
 
-                try {
-                    sendAudioMessage();
-                } catch (FileNotFoundException e) {
-
-                }
+                case MotionEvent.ACTION_UP:
+                    // Stop recording
+                    stopRecording();
+                    try {
+                        sendAudioMessage();
+                    } catch (FileNotFoundException e) {
+                        // Handle the FileNotFoundException here
+                    }
+                    v.performClick();  // Perform the click action for accessibility
+                    return true;  // Consume the event to handle the touch
             }
-            return true;
+            return false;
         });
 
     }
-
-
-
 
 
     private void selectMedia() {
