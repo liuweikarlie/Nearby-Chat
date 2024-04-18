@@ -29,6 +29,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class NearbyConnectionHelper {
 
@@ -37,7 +39,7 @@ public class NearbyConnectionHelper {
     private static NearbyConnectionHelper instance; // Singleton instance for manage connections across the app
     public final String localEndpointName; // Generated local identifier
     private final ConnectionsClient connectionsClient;
-    public final ArrayList<String> connectedEndpoints = new ArrayList<>();
+    public final ArrayList<String> connectedEndpoints = new ArrayList<String>(Arrays.asList("Public Channel"));
     private final Context context;
     private customDiscoveryCallback customDiscoveryCallback;
     private customConnectionCallback customConnectionCallback;
@@ -175,6 +177,7 @@ public class NearbyConnectionHelper {
 
         @Override
         public void onDisconnected(@NonNull String s) {
+            Log.i("NearbyService DISCONN", "Disconnected from: " + s);
             if (customConnectionCallback != null) {
                 customConnectionCallback.onDisconnected(s);
                 connectedEndpoints.remove(s);
@@ -302,7 +305,9 @@ public class NearbyConnectionHelper {
     public void sendPayload(String endpointId, Payload payload) {
         if (endpointId.equals("Public Channel")) {
             Log.i("NearbyService PUBLIC", "TRY SEND");
-            connectionsClient.sendPayload(connectedEndpoints, payload).addOnSuccessListener(aVoid -> {
+            List<String> receiverEndpoints = new ArrayList<>(this.connectedEndpoints);
+            receiverEndpoints.remove(0);
+            connectionsClient.sendPayload(receiverEndpoints, payload).addOnSuccessListener(aVoid -> {
                 // Payload sent successfully
                 Log.i("NearbyService PUBLIC", "sent" + payload.getType());
             }).addOnFailureListener(e -> {

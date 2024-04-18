@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     private ChannelAdapter adapter;
-    private ArrayList<String> channels = new ArrayList<>();
+    private ArrayList<String> channels;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
         // channels
         channels = connectionHelper.connectedEndpoints;
-        channels.add("Public Channel");
+//        channels.add("Public Channel");
         connectionHelper.setConnectionCallback(
                 new NearbyConnectionHelper.customConnectionCallback() {
                     @Override
@@ -54,9 +54,12 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onConnectionResult(String endpointId, boolean isSuccess) {
-                        if (isSuccess) {
-                            adapter.notifyDataSetChanged();
-                        }
+                        Log.d("Connection", "Connection result: " + isSuccess);
+                        runOnUiThread(() ->{
+                            if (isSuccess) {
+                                adapter.notifyItemInserted(channels.size() - 1);
+                            }
+                        });
                     }
 
                     @Override
