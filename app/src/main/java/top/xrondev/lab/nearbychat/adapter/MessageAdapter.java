@@ -264,9 +264,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         private void startPlaying() {
             if (message.getType() == MessageType.AUDIO) {
-                updateProgressBar();
                 mediaPlayer.start();
                 isPlaying = true;
+                updateProgressBar();
                 playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
             }
         }
