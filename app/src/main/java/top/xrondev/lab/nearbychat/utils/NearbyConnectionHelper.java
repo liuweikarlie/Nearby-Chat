@@ -60,72 +60,10 @@ public class NearbyConnectionHelper {
      * filePayloadFilenames map. The format is payloadId:filename.
      */
     private final PayloadCallback payloadCallback = new PayloadCallback() {
-        private final SimpleArrayMap<Long, Payload> incomingFilePayloads = new SimpleArrayMap<>();
-        private final SimpleArrayMap<Long, Payload> completedFilePayloads = new SimpleArrayMap<>();
-        private final SimpleArrayMap<Long, String> filePayloadFilenames = new SimpleArrayMap<>();
-
-        private long addPayloadFilename(String payloadFilenameMessage) {
-            String[] parts = payloadFilenameMessage.split(":");
-            long payloadId = Long.parseLong(parts[0]);
-            String filename = parts[1];
-            filePayloadFilenames.put(payloadId, filename);
-            return payloadId;
-        }
-
-
-        private void processFilePayload(long payloadId) {
-            // BYTES and FILE could be received in any order, so we call when either the BYTES or the FILE
-            // payload is completely received. The file payload is considered complete only when both have
-            // been received.
-            Payload filePayload = completedFilePayloads.get(payloadId);
-            String filename = filePayloadFilenames.get(payloadId);
-            if (filePayload != null && filename != null) {
-                completedFilePayloads.remove(payloadId);
-                filePayloadFilenames.remove(payloadId);
-
-                // Get the received file (which will be in the Downloads folder)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // Because of https://developer.android.com/preview/privacy/scoped-storage, we are not
-                    // allowed to access filepaths from another process directly. Instead, we must open the
-                    // uri using our ContentResolver.
-                    Uri uri = filePayload.asFile().asUri();
-                    try {
-                        // Copy the file to a new location.
-                        InputStream in = context.getContentResolver().openInputStream(uri);
-                        copyStream(in, Files.newOutputStream(new File(context.getCacheDir(), filename).toPath()));
-                    } catch (IOException e) {
-                        // Log the error.
-                    } finally {
-                        // Delete the original file.
-                        context.getContentResolver().delete(uri, null, null);
-                    }
-                } else {
-                    File payloadFile = filePayload.asFile().asJavaFile();
-
-                    // Rename the file.
-                    payloadFile.renameTo(new File(payloadFile.getParentFile(), filename));
-                }
-            }
-        }
-
         @Override
         public void onPayloadReceived(@NonNull String s, @NonNull Payload payload) {
             // Payload received
             Log.i("ChatActivity", "Payload received from: " + s + ":" + payload.getType());
-
-            if (payload.getType() == Payload.Type.BYTES) {
-                // Currently, we assume Bytes payload with start of "_METADATA_FILENAME:" is a filename message,
-                // probably we can override the Payload in the future to make it more clear.
-                Object message = isFilenameMessage(payload);
-                if (message != null) {
-                    String payloadFilenameMessage = (String) message;
-                    long payloadId = addPayloadFilename(payloadFilenameMessage);
-                    processFilePayload(payloadId);
-                }
-
-            } else if (payload.getType() == Payload.Type.FILE) {
-                incomingFilePayloads.put(payload.getId(), payload);
-            }
 
             if (customPayloadCallback != null) {
                 customPayloadCallback.onPayloadReceived(s, payload);
@@ -134,15 +72,6 @@ public class NearbyConnectionHelper {
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String s, @NonNull PayloadTransferUpdate payloadTransferUpdate) {
-            if (payloadTransferUpdate.getStatus() == PayloadTransferUpdate.Status.SUCCESS) {
-                long payloadId = payloadTransferUpdate.getPayloadId();
-                Payload payload = this.incomingFilePayloads.remove(payloadId);
-                completedFilePayloads.put(payloadId, payload);
-
-                if (payload!=null && payload.getType() == Payload.Type.FILE) {
-                    processFilePayload(payloadId);
-                }
-            }
             // Payload transfer update
             if (customPayloadCallback != null) {
                 customPayloadCallback.onPayloadTransferUpdate(s, payloadTransferUpdate);
@@ -209,23 +138,6 @@ public class NearbyConnectionHelper {
         this.context = context;
         this.connectionsClient = Nearby.getConnectionsClient(context);
         this.localEndpointName = "Device_" + android.os.Build.MODEL + "_" + System.currentTimeMillis();
-    }
-
-    /**
-     * Copies a stream from one location to another.
-     */
-    private static void copyStream(InputStream in, OutputStream out) throws IOException {
-        try {
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
-            }
-            out.flush();
-        } finally {
-            in.close();
-            out.close();
-        }
     }
 
     // singleton pattern~ QWQ

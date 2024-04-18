@@ -1,11 +1,14 @@
 package top.xrondev.lab.nearbychat.adapter;
 
+import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,13 +19,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.gms.nearby.connection.Payload;
 import com.squareup.picasso.Picasso;
 
-import java.io.File;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.models.Message;
-import top.xrondev.lab.nearbychat.ui.chat.ChatActivity;
+import top.xrondev.lab.nearbychat.models.MessageType;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final List<Message> messages;
@@ -68,10 +71,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 //            case 2: // Video
 //                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_video, parent, false);
 //                return new VideoMessageViewHolder(view);
-//            case 3: // Audio
-//                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
-//                return new AudioMessageViewHolder(view);
+            case 3: // Audio
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
+                return new AudioMessageViewHolder(view);
             default:
+                Log.e("MessageAdapter", "Invalid view type:" + viewType);
                 throw new IllegalArgumentException("Invalid view type");
         }
     }
@@ -90,9 +94,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 //            case 2:
 //                ((VideoMessageViewHolder) holder).bind(message);
 //                break;
-//            case 3:
-//                ((AudioMessageViewHolder) holder).bind(message);
-//                break;
+            case 3:
+                ((AudioMessageViewHolder) holder).bind(message);
+                break;
         }
     }
 
@@ -151,8 +155,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
 
     public static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
-        private ImageView imageView;
-        private ConstraintLayout constraintLayout;
+        private final ImageView imageView;
+        private final ConstraintLayout constraintLayout;
 
         public ImageMessageViewHolder(View itemView) {
             super(itemView);
@@ -163,9 +167,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public void bind(Message message) {
             // Use Picasso or another library to load the image from a URL or resource
             Log.d("ImageMessageViewHolder", "bind: " + message.getContent());
-            Uri file = Objects.requireNonNull(message.getContent().asFile()).asUri();
-            Log.d("ImageMessageViewHolder", "URI: " + file);
-            Picasso.get().load(file).into(imageView);
+            Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
+            Log.d("ImageMessageViewHolder", "URI: " + uri);
+            Picasso.get().load(uri).into(imageView);
 
 
             ConstraintSet constraintSet = new ConstraintSet();
@@ -182,6 +186,112 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             constraintSet.applyTo(constraintLayout);
+        }
+    }
+
+    public static class AudioMessageViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+        private final ImageView playButton;
+        private final TextView durationText;
+        private final ConstraintLayout constraintLayout;
+        private final ProgressBar audioProgressBar;
+
+        private final ConstraintLayout constraintContainer;
+        private final Handler handler = new Handler();
+        private MediaPlayer mediaPlayer;
+        private boolean isPlaying;
+        private Message message;
+
+        public AudioMessageViewHolder(View itemView) {
+            super(itemView);
+            constraintContainer = itemView.findViewById(R.id.messageLayout);
+            playButton = itemView.findViewById(R.id.playButton);
+            durationText = itemView.findViewById(R.id.durationText);
+            audioProgressBar = itemView.findViewById(R.id.audioProgressBar);
+            constraintLayout = (ConstraintLayout) itemView;
+            playButton.setOnClickListener(this);
+
+
+        }
+
+        public void bind(Message message) {
+            this.message = message;
+            Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
+            mediaPlayer = new MediaPlayer();
+            try{
+                if (uri != null) {
+                    mediaPlayer.setDataSource(itemView.getContext(), uri);
+                    mediaPlayer.prepareAsync();
+                }
+
+                mediaPlayer.setOnPreparedListener(mp -> {
+                    durationText.setText(String.format(Locale.getDefault(), "%d'",
+                        mediaPlayer.getDuration() / 1000));
+                    audioProgressBar.setMax(mediaPlayer.getDuration());
+                });
+
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    audioProgressBar.setProgress(mediaPlayer.getDuration());
+                    stopPlaying();
+                });
+            }catch (Exception e){
+                Log.e("AudioMessageViewHolder", "Error setting data source", e);
+            }
+
+            ConstraintSet constraintSet = new ConstraintSet();
+            constraintSet.clone(constraintLayout);
+
+            if (message.isFromMe()) {
+                constraintSet.clear(constraintContainer.getId(), ConstraintSet.START);
+                constraintSet.connect(constraintContainer.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintContainer.setSelected(true);
+            } else {
+                constraintSet.clear(constraintContainer.getId(), ConstraintSet.END);
+                constraintSet.connect(constraintContainer.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintContainer.setSelected(false);
+            }
+
+            constraintSet.applyTo(constraintLayout);
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (!isPlaying) {
+                startPlaying();
+            } else {
+                stopPlaying();
+            }
+        }
+
+        private void startPlaying() {
+            if (message.getType() == MessageType.AUDIO) {
+                updateProgressBar();
+                mediaPlayer.start();
+                isPlaying = true;
+                playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
+            }
+        }
+
+        private void stopPlaying() {
+            if (mediaPlayer != null && isPlaying) {
+                isPlaying = false;
+                playButton.setImageResource(R.drawable.ic_audio); // Update the button icon to play
+            }
+        }
+
+        private void updateProgressBar() {
+            if (mediaPlayer != null && isPlaying) {
+                audioProgressBar.setProgress(mediaPlayer.getCurrentPosition());
+                handler.postDelayed(this::updateProgressBar, 17); // Schedule the progress update
+            }
+        }
+
+        public void release() {
+            // TODO: Release the MediaPlayer instance when necessary?
+            // Do not release after stop playing, or else the audio will not play again
+            if (mediaPlayer != null) {
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
         }
     }
 
