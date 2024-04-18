@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.nearby.connection.ConnectionInfo;
+
 import java.util.ArrayList;
 
 import top.xrondev.lab.nearbychat.R;
@@ -37,10 +39,33 @@ public class MainActivity extends AppCompatActivity {
         if (!permissionGranted) {
             Log.e("Permission", "Permissions not granted");
         }
-
+        // Nearby Connection helper class
+        NearbyConnectionHelper connectionHelper = NearbyConnectionHelper.getInstance(this);
 
         // channels
+        channels = connectionHelper.connectedEndpoints;
         channels.add("Public Channel");
+        connectionHelper.setConnectionCallback(
+                new NearbyConnectionHelper.customConnectionCallback() {
+                    @Override
+                    public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
+
+                    }
+
+                    @Override
+                    public void onConnectionResult(String endpointId, boolean isSuccess) {
+                        if (isSuccess) {
+                            adapter.notifyDataSetChanged();
+                        }
+                    }
+
+                    @Override
+                    public void onDisconnected(String endpointId) {
+
+                    }
+                }
+        );
+
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         adapter = new ChannelAdapter(this, channels);
         adapter.setClickListener(this::onChannelClick);
@@ -50,31 +75,6 @@ public class MainActivity extends AppCompatActivity {
         // Adding a divider between items in the RecyclerView
         DividerItemDecoration decoration = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         recyclerView.addItemDecoration(decoration);
-
-        // Nearby Connection helper class
-        NearbyConnectionHelper connectionHelper = NearbyConnectionHelper.getInstance(this);
-        connectionHelper.setDiscoveryCallback(new NearbyConnectionHelper.customDiscoveryCallback() {
-            @Override
-            public void onEndpointFound(String endpointId, String endpointName) {
-                // Add the endpoint to the list of channels
-                runOnUiThread(()->{
-                    channels.add(endpointName);
-                    adapter.notifyItemInserted(channels.size() - 1);
-                });
-            }
-
-            @Override
-            public void onEndpointLost(String endpointId) {
-                // Remove the endpoint from the list of channels
-                runOnUiThread(()->{
-                    int index = channels.indexOf(endpointId);
-                    if (index != -1) {
-                        channels.remove(index);
-                        adapter.notifyItemRemoved(index);
-                    }
-                });
-            }
-        });
 
 
         // TODO: TRY_CATCH the APIException

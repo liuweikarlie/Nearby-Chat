@@ -37,7 +37,7 @@ public class NearbyConnectionHelper {
     private static NearbyConnectionHelper instance; // Singleton instance for manage connections across the app
     public final String localEndpointName; // Generated local identifier
     private final ConnectionsClient connectionsClient;
-    private final ArrayList<String> connectedEndpoints = new ArrayList<>();
+    public final ArrayList<String> connectedEndpoints = new ArrayList<>();
     private final Context context;
     private customDiscoveryCallback customDiscoveryCallback;
     private customConnectionCallback customConnectionCallback;
@@ -177,6 +177,7 @@ public class NearbyConnectionHelper {
         public void onDisconnected(@NonNull String s) {
             if (customConnectionCallback != null) {
                 customConnectionCallback.onDisconnected(s);
+                connectedEndpoints.remove(s);
             }
         }
     };
