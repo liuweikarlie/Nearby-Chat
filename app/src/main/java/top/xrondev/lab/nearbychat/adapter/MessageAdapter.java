@@ -1,5 +1,6 @@
 package top.xrondev.lab.nearbychat.adapter;
 
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -17,11 +18,13 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.models.Message;
+import top.xrondev.lab.nearbychat.models.MessageType;
 import top.xrondev.lab.nearbychat.ui.chat.ChatActivity;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -68,9 +71,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 //            case 2: // Video
 //                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_video, parent, false);
 //                return new VideoMessageViewHolder(view);
-//            case 3: // Audio
-//                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
-//                return new AudioMessageViewHolder(view);
+            case 3: // Audio
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
+                return new AudioMessageViewHolder(view);
             default:
                 throw new IllegalArgumentException("Invalid view type");
         }
@@ -90,9 +93,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 //            case 2:
 //                ((VideoMessageViewHolder) holder).bind(message);
 //                break;
-//            case 3:
-//                ((AudioMessageViewHolder) holder).bind(message);
-//                break;
+            case 3:
+                ((AudioMessageViewHolder) holder).bind(message);
+                break;
         }
     }
 
@@ -182,6 +185,75 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             }
 
             constraintSet.applyTo(constraintLayout);
+        }
+    }
+
+    public static class AudioMessageViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+        private ImageView playButton;
+        private ConstraintLayout constraintLayout;
+        private MediaPlayer mediaPlayer;
+        private boolean isPlaying;
+        private Message message;
+
+        public AudioMessageViewHolder(View itemView) {
+            super(itemView);
+            playButton = itemView.findViewById(R.id.playButton);
+            constraintLayout = (ConstraintLayout) itemView;
+            playButton.setOnClickListener(this);
+        }
+
+        public void bind(Message message) {
+            this.message = message;
+
+            ConstraintSet constraintSet = new ConstraintSet();
+            constraintSet.clone(constraintLayout);
+
+            if (message.isFromMe()) {
+                constraintSet.clear(playButton.getId(), ConstraintSet.START);
+                constraintSet.connect(playButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+            } else {
+                constraintSet.clear(playButton.getId(), ConstraintSet.END);
+                constraintSet.connect(playButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+            }
+
+            constraintSet.applyTo(constraintLayout);
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (!isPlaying) {
+                startPlaying();
+            } else {
+                stopPlaying();
+            }
+        }
+
+        private void startPlaying() {
+            if (message.getType() == MessageType.AUDIO) {
+                Payload.File payloadFile = message.getContent().asFile();
+                if (payloadFile != null) {
+                    String filePath = payloadFile.asJavaFile().getPath();
+                    mediaPlayer = new MediaPlayer();
+                    try {
+                        mediaPlayer.setDataSource(filePath);
+                        mediaPlayer.prepare();
+                        mediaPlayer.start();
+                        isPlaying = true;
+                        playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        private void stopPlaying() {
+            if (mediaPlayer != null && isPlaying) {
+                mediaPlayer.release();
+                mediaPlayer = null;
+                isPlaying = false;
+                playButton.setImageResource(R.drawable.ic_play); // Update the button icon to play
+            }
         }
     }
 

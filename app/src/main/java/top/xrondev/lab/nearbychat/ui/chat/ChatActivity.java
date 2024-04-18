@@ -3,9 +3,12 @@ package top.xrondev.lab.nearbychat.ui.chat;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,6 +20,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -32,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.adapter.MessageAdapter;
@@ -52,6 +57,10 @@ public class ChatActivity extends AppCompatActivity {
     private String endpointId;
 
     private ActivityResultLauncher<PickVisualMediaRequest> mediaResultLauncher;
+    private boolean isRecording = false;
+    private MediaRecorder mediaRecorder;
+    private String audioFilePath;
+
 
     public static void startActivity(Context context, String channelName) {
         Intent intent = new Intent(context, ChatActivity.class);
@@ -167,7 +176,6 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         // close menu layout when clicked outside
-        // TODO: not working
         chatRecyclerView.setOnTouchListener((v, event) -> {
             if (menuLayout.getVisibility() == View.VISIBLE) {
                 menuLayout.setVisibility(View.GONE);
@@ -207,6 +215,27 @@ public class ChatActivity extends AppCompatActivity {
         Button btnMedias = findViewById(R.id.btnMedias);
         btnMedias.setOnClickListener(v -> selectMedia());
 
+
+
+
+        Button btnAudio = findViewById(R.id.btnAudio);
+        btnAudio.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                // Start recording audio
+                startRecording();
+            } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                // Stop recording audio and send the recorded audio file
+                stopRecording();
+
+                try {
+                    sendAudioMessage();
+                } catch (FileNotFoundException e) {
+
+                }
+            }
+            return true;
+        });
+
     }
 
 
@@ -245,6 +274,62 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         return file;
+    }
+
+    // Audio
+    private void startRecording() {
+        // Create a new MediaRecorder instance
+        mediaRecorder = new MediaRecorder();
+
+        // Set the audio source and output format
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+
+        // Create a temporary audio file to store the recorded audio
+        audioFilePath = getExternalCacheDir().getAbsolutePath() + "/temp_audio.3gp";
+        mediaRecorder.setOutputFile(audioFilePath);
+
+        // Set the audio encoder
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        // Start recording
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopRecording() {
+        if (isRecording) {
+            // Stop recording
+            mediaRecorder.stop();
+            mediaRecorder.release();
+            mediaRecorder = null;
+            isRecording = false;
+        }
+    }
+
+    private void sendAudioMessage() throws FileNotFoundException {
+        if (audioFilePath != null) {
+            // Create a payload from the recorded audio file
+            File audioFile = new File(audioFilePath);
+            if (audioFile.exists()) {
+                Payload audioPayload = Payload.fromFile(audioFile);
+
+                // Send the audio payload to the remote endpoint
+                connectionHelper.sendPayload(endpointId, audioPayload);
+
+                // Add the audio message to the UI
+                Message message = new Message("me", audioPayload, MessageType.AUDIO);
+                messageAdapter.addMessage(message);
+                int targetPosition = messageAdapter.getItemCount() - 1;
+                chatRecyclerView.smoothScrollToPosition(targetPosition);
+                messageAdapter.notifyDataSetChanged();
+            }
+        }
     }
 
 }
