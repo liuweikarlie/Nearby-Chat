@@ -8,7 +8,7 @@
     <ImageView
         android:id="@+id/imageMessage"
         android:layout_width="0dp"
-        android:layout_height="200dp"
+        android:layout_height="wrap_content"
         android:scaleType="centerCrop"
         android:padding="8dp"
         android:background="@drawable/message_background"
