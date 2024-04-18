@@ -2,11 +2,13 @@ package top.xrondev.lab.nearbychat.adapter;
 
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -17,15 +19,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.gms.nearby.connection.Payload;
 import com.squareup.picasso.Picasso;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import top.xrondev.lab.nearbychat.R;
 import top.xrondev.lab.nearbychat.models.Message;
 import top.xrondev.lab.nearbychat.models.MessageType;
-import top.xrondev.lab.nearbychat.ui.chat.ChatActivity;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final List<Message> messages;
@@ -155,8 +155,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
 
     public static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
-        private ImageView imageView;
-        private ConstraintLayout constraintLayout;
+        private final ImageView imageView;
+        private final ConstraintLayout constraintLayout;
 
         public ImageMessageViewHolder(View itemView) {
             super(itemView);
@@ -190,31 +190,64 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     public static class AudioMessageViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-        private ImageView playButton;
-        private ConstraintLayout constraintLayout;
+        private final ImageView playButton;
+        private final TextView durationText;
+        private final ConstraintLayout constraintLayout;
+        private final ProgressBar audioProgressBar;
+
+        private final ConstraintLayout constraintContainer;
+        private final Handler handler = new Handler();
         private MediaPlayer mediaPlayer;
         private boolean isPlaying;
         private Message message;
 
         public AudioMessageViewHolder(View itemView) {
             super(itemView);
+            constraintContainer = itemView.findViewById(R.id.messageLayout);
             playButton = itemView.findViewById(R.id.playButton);
+            durationText = itemView.findViewById(R.id.durationText);
+            audioProgressBar = itemView.findViewById(R.id.audioProgressBar);
             constraintLayout = (ConstraintLayout) itemView;
             playButton.setOnClickListener(this);
+
+
         }
 
         public void bind(Message message) {
             this.message = message;
+            Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
+            mediaPlayer = new MediaPlayer();
+            try{
+                if (uri != null) {
+                    mediaPlayer.setDataSource(itemView.getContext(), uri);
+                    mediaPlayer.prepareAsync();
+                }
+
+                mediaPlayer.setOnPreparedListener(mp -> {
+                    durationText.setText(String.format(Locale.getDefault(), "%d'",
+                        mediaPlayer.getDuration() / 1000));
+                    audioProgressBar.setMax(mediaPlayer.getDuration());
+                });
+
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    audioProgressBar.setProgress(mediaPlayer.getDuration());
+                    stopPlaying();
+                });
+            }catch (Exception e){
+                Log.e("AudioMessageViewHolder", "Error setting data source", e);
+            }
 
             ConstraintSet constraintSet = new ConstraintSet();
             constraintSet.clone(constraintLayout);
 
             if (message.isFromMe()) {
-                constraintSet.clear(playButton.getId(), ConstraintSet.START);
-                constraintSet.connect(playButton.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintSet.clear(constraintContainer.getId(), ConstraintSet.START);
+                constraintSet.connect(constraintContainer.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                constraintContainer.setSelected(true);
             } else {
-                constraintSet.clear(playButton.getId(), ConstraintSet.END);
-                constraintSet.connect(playButton.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintSet.clear(constraintContainer.getId(), ConstraintSet.END);
+                constraintSet.connect(constraintContainer.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                constraintContainer.setSelected(false);
             }
 
             constraintSet.applyTo(constraintLayout);
@@ -223,42 +256,41 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         @Override
         public void onClick(View v) {
             if (!isPlaying) {
-                startPlaying(v);
+                startPlaying();
             } else {
                 stopPlaying();
             }
         }
 
-        private void startPlaying(View v) {
+        private void startPlaying() {
             if (message.getType() == MessageType.AUDIO) {
-                Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
-                if (uri != null) {
-                    mediaPlayer = new MediaPlayer();
-
-                    mediaPlayer.setOnCompletionListener(mp -> {
-                        stopPlaying();
-                        mp.release();
-                    });
-
-                    try {
-                        mediaPlayer.setDataSource(v.getContext(), uri);
-                        mediaPlayer.prepare();
-                        mediaPlayer.start();
-                        isPlaying = true;
-                        playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
-                    } catch (IOException e) {
-                        Log.e("AudioMessageViewHolder", "Error playing audio", e);
-                    }
-                }
+                updateProgressBar();
+                mediaPlayer.start();
+                isPlaying = true;
+                playButton.setImageResource(R.drawable.ic_pause); // Update the button icon to pause
             }
         }
 
         private void stopPlaying() {
             if (mediaPlayer != null && isPlaying) {
+                isPlaying = false;
+                playButton.setImageResource(R.drawable.ic_audio); // Update the button icon to play
+            }
+        }
+
+        private void updateProgressBar() {
+            if (mediaPlayer != null && isPlaying) {
+                audioProgressBar.setProgress(mediaPlayer.getCurrentPosition());
+                handler.postDelayed(this::updateProgressBar, 17); // Schedule the progress update
+            }
+        }
+
+        public void release() {
+            // TODO: Release the MediaPlayer instance when necessary?
+            // Do not release after stop playing, or else the audio will not play again
+            if (mediaPlayer != null) {
                 mediaPlayer.release();
                 mediaPlayer = null;
-                isPlaying = false;
-                playButton.setImageResource(R.drawable.ic_play); // Update the button icon to play
             }
         }
     }

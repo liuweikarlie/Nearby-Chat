@@ -1,12 +1,16 @@
 package top.xrondev.lab.nearbychat.ui.chat;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -49,6 +53,7 @@ public class ChatActivity extends AppCompatActivity {
     private NearbyConnectionHelper connectionHelper;
     private EditText inputMessage;
     private Button sendButton;
+    private Dialog recordingDialog;
 
     private ImageButton btnBack;
     private String endpointId;
@@ -57,6 +62,8 @@ public class ChatActivity extends AppCompatActivity {
     private boolean isRecording = false;
     private MediaRecorder mediaRecorder;
     private String audioFilePath;
+    private long startTime; // To calculate the recording duration
+    private final Handler handler = new Handler(); // To handle the recording duration, delay it if needed
 
 
     public static void startActivity(Context context, String channelName) {
@@ -216,16 +223,30 @@ public class ChatActivity extends AppCompatActivity {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     // Start recording
+                    startTime = SystemClock.elapsedRealtime();
                     startRecording();
                     return true;  // Consume the event to handle the touch
 
                 case MotionEvent.ACTION_UP:
                     // Stop recording
-                    stopRecording();
-                    try {
-                        sendAudioMessage();
-                    } catch (FileNotFoundException e) {
-                        // Handle the FileNotFoundException here
+                    long endTime = SystemClock.elapsedRealtime();
+                    if (endTime - startTime < 1000) {
+                        // Delay the stopRecording call to ensure at least 1 second of recording
+                        handler.postDelayed(() -> {
+                            stopRecording();
+                            try {
+                                sendAudioMessage();
+                            } catch (FileNotFoundException e) {
+                                // Handle the FileNotFoundException here
+                            }
+                        }, 1000 - (endTime - startTime));
+                    } else {
+                        stopRecording();
+                        try {
+                            sendAudioMessage();
+                        } catch (FileNotFoundException e) {
+                            // Handle the FileNotFoundException here
+                        }
                     }
                     v.performClick();  // Perform the click action for accessibility
                     return true;  // Consume the event to handle the touch
@@ -278,7 +299,7 @@ public class ChatActivity extends AppCompatActivity {
         mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
 
         // Create a temporary audio file to store the recorded audio
-        audioFilePath = getExternalCacheDir().getAbsolutePath() + "/temp_audio.3gp";
+        audioFilePath = Objects.requireNonNull(getExternalCacheDir()).getAbsolutePath() + "/" + System.nanoTime() + "_temp_audio.3gp";
         mediaRecorder.setOutputFile(audioFilePath);
 
         // Set the audio encoder
@@ -289,8 +310,10 @@ public class ChatActivity extends AppCompatActivity {
             mediaRecorder.prepare();
             mediaRecorder.start();
             isRecording = true;
+            showRecordingDialog();
         } catch (IOException e) {
-            e.printStackTrace();
+            dismissRecordingDialog();
+            Log.e("NBC MediaRecorder", "MediaRecorder prepare() failed");
         }
     }
 
@@ -301,6 +324,23 @@ public class ChatActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             isRecording = false;
+            dismissRecordingDialog();
+        }
+    }
+
+    private void showRecordingDialog() {
+        if (recordingDialog == null) {
+            recordingDialog = new Dialog(this);
+            recordingDialog.setContentView(R.layout.audio_recording_dialog); // Use if custom layout
+            recordingDialog.setCancelable(false);
+            recordingDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+        recordingDialog.show();
+    }
+
+    private void dismissRecordingDialog() {
+        if (recordingDialog != null && recordingDialog.isShowing()) {
+            recordingDialog.dismiss();
         }
     }
 
