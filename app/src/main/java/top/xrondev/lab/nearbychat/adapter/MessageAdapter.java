@@ -75,6 +75,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
                 return new AudioMessageViewHolder(view);
             default:
+                Log.e("MessageAdapter", "Invalid view type:" + viewType);
                 throw new IllegalArgumentException("Invalid view type");
         }
     }
@@ -166,9 +167,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         public void bind(Message message) {
             // Use Picasso or another library to load the image from a URL or resource
             Log.d("ImageMessageViewHolder", "bind: " + message.getContent());
-            Uri file = Objects.requireNonNull(message.getContent().asFile()).asUri();
-            Log.d("ImageMessageViewHolder", "URI: " + file);
-            Picasso.get().load(file).into(imageView);
+            Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
+            Log.d("ImageMessageViewHolder", "URI: " + uri);
+            Picasso.get().load(uri).into(imageView);
 
 
             ConstraintSet constraintSet = new ConstraintSet();
@@ -222,20 +223,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         @Override
         public void onClick(View v) {
             if (!isPlaying) {
-                startPlaying();
+                startPlaying(v);
             } else {
                 stopPlaying();
             }
         }
 
-        private void startPlaying() {
+        private void startPlaying(View v) {
             if (message.getType() == MessageType.AUDIO) {
-                Payload.File payloadFile = message.getContent().asFile();
-                if (payloadFile != null) {
-                    String filePath = payloadFile.asJavaFile().getPath();
+                Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
+                if (uri != null) {
                     mediaPlayer = new MediaPlayer();
                     try {
-                        mediaPlayer.setDataSource(filePath);
+                        mediaPlayer.setDataSource(v.getContext(), uri);
                         mediaPlayer.prepare();
                         mediaPlayer.start();
                         isPlaying = true;
