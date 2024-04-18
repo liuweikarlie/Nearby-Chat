@@ -64,7 +64,12 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onDisconnected(String endpointId) {
-
+                        runOnUiThread(() -> {
+                            int index = channels.indexOf(endpointId);
+                            if (index != -1) {
+                                adapter.notifyItemRemoved(index);
+                            }
+                        });
                     }
                 }
         );
