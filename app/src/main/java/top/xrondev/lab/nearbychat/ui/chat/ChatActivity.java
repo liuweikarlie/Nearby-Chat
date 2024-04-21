@@ -5,12 +5,14 @@ import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -58,6 +60,8 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton btnBack;
     private String endpointId;
     private ActivityResultLauncher<PickVisualMediaRequest> mediaResultLauncher;
+
+    private ActivityResultLauncher<String[]> fileResultLauncher;
     private boolean isRecording = false;
     private MediaRecorder mediaRecorder;
     private String audioFilePath;
@@ -159,7 +163,7 @@ public class ChatActivity extends AppCompatActivity {
                 connectionHelper.sendPayload(endpointId, payload);
 
                 // Add message to UI
-                Message message = new Message("me", payload, MessageType.TEXT);
+                Message message = new Message("Me", payload, MessageType.TEXT);
                 messageAdapter.addMessage(message);
                 messageAdapter.notifyDataSetChanged();
                 int targetPosition = messageAdapter.getItemCount() - 1;
@@ -188,6 +192,43 @@ public class ChatActivity extends AppCompatActivity {
             return false;
         });
 
+        fileResultLauncher = registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+            // Handle the URI result here
+            Log.i("ChatActivity", "File URI: " + uri);
+            if (uri != null) {
+                try {
+                    Log.d("ChatActivity", "File name: " + getFileName(uri));
+                    // Message with METADATA first, and then image file
+                    // But I think this step can be simplified, just send the file with the filename
+                    // I am not sure why this kind of sending method (filename first by BYTES and then file by FILE) is suggested by Google
+                    // Handle the filename and file separately?
+                    String fileName = getFileName(uri);
+                    Payload filenamePayload = Payload.fromBytes(fileName.getBytes());
+                    Message filenameMessage = new Message("Me", filenamePayload, MessageType.TEXT);
+                    connectionHelper.sendPayload(endpointId, filenamePayload);
+                    messageAdapter.addMessage(filenameMessage);
+
+
+                    File file = uriToFile(uri, uri.getLastPathSegment());
+                    Payload filePayload = Payload.fromFile(file);
+                    filePayload.setFileName(uri.getLastPathSegment() + MessageType.FILE);
+
+                    Message message = new Message("Me", filePayload, MessageType.FILE);
+                    Log.d("ChatActivity", "Sending file: " + filePayload.asFile().getSize() + filePayload.asFile());
+                    connectionHelper.sendPayload(endpointId, filePayload);
+                    messageAdapter.addMessage(message);
+                    int targetPosition = messageAdapter.getItemCount() - 1;
+                    chatRecyclerView.smoothScrollToPosition(targetPosition);
+
+                } catch (FileNotFoundException e) {
+                    Toast.makeText(ChatActivity.this, "File not found", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        Button btnFiles = findViewById(R.id.btnFiles);
+        btnFiles.setOnClickListener(v -> selectFile());
+
 
         mediaResultLauncher = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
             // Handle the URI result here
@@ -198,7 +239,7 @@ public class ChatActivity extends AppCompatActivity {
                     Payload filePayload = Payload.fromFile(file);
                     filePayload.setFileName(uri.getLastPathSegment() + MessageType.IMAGE);
 
-                    Message message = new Message("me", filePayload, MessageType.IMAGE);
+                    Message message = new Message("Me", filePayload, MessageType.IMAGE);
                     Log.d("ChatActivity", "Sending file: " + filePayload.asFile().getSize() + filePayload.asFile());
                     connectionHelper.sendPayload(endpointId, filePayload);
                     messageAdapter.addMessage(message);
@@ -256,6 +297,10 @@ public class ChatActivity extends AppCompatActivity {
 
     private void selectMedia() {
         mediaResultLauncher.launch(new PickVisualMediaRequest.Builder().setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build());
+    }
+
+    private void selectFile() {
+        fileResultLauncher.launch(new String[]{"*/*"});
     }
 
     public File uriToFile(Uri contentUri, String fileName) {
@@ -353,13 +398,38 @@ public class ChatActivity extends AppCompatActivity {
                 connectionHelper.sendPayload(endpointId, audioPayload);
 
                 // Add the audio message to the UI
-                Message message = new Message("me", audioPayload, MessageType.AUDIO);
+                Message message = new Message("Me", audioPayload, MessageType.AUDIO);
                 messageAdapter.addMessage(message);
                 int targetPosition = messageAdapter.getItemCount() - 1;
                 chatRecyclerView.smoothScrollToPosition(targetPosition);
                 messageAdapter.notifyDataSetChanged();
             }
         }
+    }
+
+    private String getFileName(Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+            try {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (cursor.moveToFirst() && nameIndex != -1) {
+                    result = cursor.getString(nameIndex);
+                }
+            } catch (Exception e) {
+                Log.e("ChatActivity", "Error getting file name: " + e.getMessage());
+            } finally {
+                cursor.close();
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result.lastIndexOf('/');
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return result;
     }
 
 }

@@ -322,14 +322,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             ConstraintSet constraintSet = new ConstraintSet();
             constraintSet.clone(constraintLayout);
 
+            ConstraintLayout messageLayout = itemView.findViewById(R.id.messageLayout);
+
             if (message.isFromMe()) {
-                constraintSet.clear(filenameTextView.getId(), ConstraintSet.START);
-                constraintSet.connect(filenameTextView.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
-                filenameTextView.setSelected(true); // Apply 'me' background state
+                constraintSet.clear(messageLayout.getId(), ConstraintSet.START);
+                constraintSet.connect(messageLayout.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                messageLayout.setSelected(true); // Apply 'me' background state
             } else {
-                constraintSet.clear(filenameTextView.getId(), ConstraintSet.END);
-                constraintSet.connect(filenameTextView.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
-                filenameTextView.setSelected(false); // Apply 'other' background state
+                constraintSet.clear(messageLayout.getId(), ConstraintSet.END);
+                constraintSet.connect(messageLayout.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                messageLayout.setSelected(false); // Apply 'other' background state
             }
 
             constraintSet.applyTo(constraintLayout);
