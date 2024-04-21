@@ -74,6 +74,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case 3: // Audio
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_audio, parent, false);
                 return new AudioMessageViewHolder(view);
+            case 4: // File
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_file, parent, false);
+                return new FileMessageViewHolder(view);
             default:
                 Log.e("MessageAdapter", "Invalid view type:" + viewType);
                 throw new IllegalArgumentException("Invalid view type");
@@ -97,6 +100,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case 3:
                 ((AudioMessageViewHolder) holder).bind(message);
                 break;
+            case 4:
+                ((FileMessageViewHolder) holder).bind(message);
+                break;
+            default:
+                Log.e("MessageAdapter", "Invalid view type:" + holder.getItemViewType());
+                throw new IllegalArgumentException("Invalid view type");
         }
     }
 
@@ -292,6 +301,38 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 mediaPlayer.release();
                 mediaPlayer = null;
             }
+        }
+    }
+
+    public static class FileMessageViewHolder extends RecyclerView.ViewHolder {
+        private final TextView filenameTextView;
+        private final ConstraintLayout constraintLayout;
+
+        public FileMessageViewHolder(View itemView) {
+            super(itemView);
+            filenameTextView = itemView.findViewById(R.id.filenameTextView);
+            constraintLayout = (ConstraintLayout) itemView;
+        }
+
+        public void bind(Message message) {
+            Payload payload = message.getContent();
+            String filename = Objects.requireNonNull(Objects.requireNonNull(payload.asFile()).asUri()).getLastPathSegment();
+            filenameTextView.setText(filename);
+
+            ConstraintSet constraintSet = new ConstraintSet();
+            constraintSet.clone(constraintLayout);
+
+            if (message.isFromMe()) {
+                constraintSet.clear(filenameTextView.getId(), ConstraintSet.START);
+                constraintSet.connect(filenameTextView.getId(), ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END);
+                filenameTextView.setSelected(true); // Apply 'me' background state
+            } else {
+                constraintSet.clear(filenameTextView.getId(), ConstraintSet.END);
+                constraintSet.connect(filenameTextView.getId(), ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START);
+                filenameTextView.setSelected(false); // Apply 'other' background state
+            }
+
+            constraintSet.applyTo(constraintLayout);
         }
     }
 
