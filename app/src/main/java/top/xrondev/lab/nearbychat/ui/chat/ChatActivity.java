@@ -48,23 +48,20 @@ import top.xrondev.lab.nearbychat.utils.NearbyConnectionHelper;
 
 public class ChatActivity extends AppCompatActivity {
     private final List<Message> messages = new ArrayList<>();
+    private final Handler handler = new Handler(); // To handle the recording duration, delay it if needed
     private RecyclerView chatRecyclerView;
     private MessageAdapter messageAdapter;
     private NearbyConnectionHelper connectionHelper;
     private EditText inputMessage;
     private Button sendButton;
     private Dialog recordingDialog;
-
     private ImageButton btnBack;
     private String endpointId;
-
     private ActivityResultLauncher<PickVisualMediaRequest> mediaResultLauncher;
     private boolean isRecording = false;
     private MediaRecorder mediaRecorder;
     private String audioFilePath;
     private long startTime; // To calculate the recording duration
-    private final Handler handler = new Handler(); // To handle the recording duration, delay it if needed
-
 
     public static void startActivity(Context context, String channelName) {
         Intent intent = new Intent(context, ChatActivity.class);

@@ -1,12 +1,9 @@
 package top.xrondev.lab.nearbychat.utils;
 
 import android.content.Context;
-import android.net.Uri;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.collection.SimpleArrayMap;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
@@ -22,14 +19,10 @@ import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class NearbyConnectionHelper {
@@ -38,23 +31,12 @@ public class NearbyConnectionHelper {
     private static final Strategy STRATEGY = Strategy.P2P_STAR;
     private static NearbyConnectionHelper instance; // Singleton instance for manage connections across the app
     public final String localEndpointName; // Generated local identifier
+    public final ArrayList<String> connectedEndpoints = new ArrayList<String>(Collections.singletonList("Public Channel"));
     private final ConnectionsClient connectionsClient;
-    public final ArrayList<String> connectedEndpoints = new ArrayList<String>(Arrays.asList("Public Channel"));
     private final Context context;
     private customDiscoveryCallback customDiscoveryCallback;
     private customConnectionCallback customConnectionCallback;
     private customPayloadCallback customPayloadCallback;
-
-    public Object isFilenameMessage(Payload payload) {
-        // Check if it is a FILENAME specific payload
-        String message = new String(payload.asBytes(), StandardCharsets.UTF_8);
-        if (message.startsWith("_METADATA_FILENAME:")) {
-            return message.substring(19);
-        }else {
-            return null;
-        }
-    }
-
     /**
      * Extracts the payloadId and filename from the message and stores it in the
      * filePayloadFilenames map. The format is payloadId:filename.
@@ -146,6 +128,7 @@ public class NearbyConnectionHelper {
             }
         }
     };
+
     private NearbyConnectionHelper(Context context) {
         this.context = context;
         this.connectionsClient = Nearby.getConnectionsClient(context);
@@ -158,6 +141,16 @@ public class NearbyConnectionHelper {
             instance = new NearbyConnectionHelper(context);
         }
         return instance;
+    }
+
+    public Object isFilenameMessage(Payload payload) {
+        // Check if it is a FILENAME specific payload
+        String message = new String(payload.asBytes(), StandardCharsets.UTF_8);
+        if (message.startsWith("_METADATA_FILENAME:")) {
+            return message.substring(19);
+        } else {
+            return null;
+        }
     }
 
     public void startAdvertising() {

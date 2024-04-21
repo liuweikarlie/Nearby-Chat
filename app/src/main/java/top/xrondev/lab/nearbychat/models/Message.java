@@ -40,6 +40,6 @@ public class Message {
 
     public boolean isFromMe() {
         // is send by me or from others
-        return sender.equals("me");
+        return sender.equals("Me");
     }
 }

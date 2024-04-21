@@ -217,7 +217,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             this.message = message;
             Uri uri = Objects.requireNonNull(message.getContent().asFile()).asUri();
             mediaPlayer = new MediaPlayer();
-            try{
+            try {
                 if (uri != null) {
                     mediaPlayer.setDataSource(itemView.getContext(), uri);
                     mediaPlayer.prepareAsync();
@@ -225,7 +225,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
                 mediaPlayer.setOnPreparedListener(mp -> {
                     durationText.setText(String.format(Locale.getDefault(), "%d'",
-                        mediaPlayer.getDuration() / 1000));
+                            mediaPlayer.getDuration() / 1000));
                     audioProgressBar.setMax(mediaPlayer.getDuration());
                 });
 
@@ -233,7 +233,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     audioProgressBar.setProgress(mediaPlayer.getDuration());
                     stopPlaying();
                 });
-            }catch (Exception e){
+            } catch (Exception e) {
                 Log.e("AudioMessageViewHolder", "Error setting data source", e);
             }
 
