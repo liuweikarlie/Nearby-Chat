@@ -1,6 +1,6 @@
 # Nearby Chat
 
-A simple Android app that allows you to chat with people nearby. It uses the Google Nearby Messages
+A simple Android app that allows you to chat with people nearby. It uses the Google Nearby Connections
 API to discover and communicate with nearby devices.
 > This app is a course project for HKU COMP7506 Smart phone apps development.
 
