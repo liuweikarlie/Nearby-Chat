@@ -37,7 +37,7 @@ git clone https://github.com/liuweikarlie/CHAT.git
 ```
 ### Run the app
 You may need multiple devices to run the application; you can distribute the APK file to the devices or use `adb` to connect multiple devices and test them in Android Studio.
-**Make sure you have read the [Important Notes](https://github.com/liuweikarlie/CHAT/edit/main/README.md#%EF%B8%8Fimportant-notes) in the readme file**
+**Make sure you have read the [Important Notes](https://github.com/liuweikarlie/CHAT?tab=readme-ov-file#%EF%B8%8Fimportant-notes) in the readme file**
 
 For `adb`, you might need the following commands for your testing:
 ```shell
